@@ -1,0 +1,21 @@
+{
+    "testId": "a0b0892d-ccba-41b3-8824-5d02f3a7bbc3",
+    "name": "Helloworld React Js",
+    "version": "1.0.0",
+    "manifestVersion": 2,
+    "requirements": {
+        "apps": [
+            {
+                "name": "Express",
+                "apiVersion": 1
+            }
+        ]
+    },
+    "entryPoints": [
+        {
+            "type": "panel",
+            "id": "panel1",
+            "main": "index.html"
+        }
+    ]
+}
