@@ -1,0 +1,31 @@
+.themes-container {
+    width: 100%;
+    height: 100%;
+    padding: 24px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.theme-picker {
+    width: 100%;
+    height: 100%;
+}
+
+.theme-picker::part(button) {
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+.theme-picker sp-menu-item {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+}
+
+.theme-picker sp-menu {
+    padding: 8px 0 !important;
+}
+
+.themes-container sp-picker::part(listbox) {
+    padding-left: 0;
+}

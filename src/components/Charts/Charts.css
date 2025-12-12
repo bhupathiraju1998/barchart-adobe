@@ -1,0 +1,152 @@
+.charts-container {
+    width: 100%;
+    height: 100%;
+    padding: 24px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-picker {
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.chart-preview {
+    width: 100%;
+    margin-top: 24px;
+    flex-shrink: 0;
+}
+
+.chart-picker::part(button) {
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+.chart-picker sp-menu-item {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+}
+
+.chart-picker sp-menu {
+    padding: 8px 0 !important;
+}
+
+.chart-picker sp-menu-item.menu-divider,
+.chart-picker sp-menu-item[disabled].menu-divider {
+    display: block !important;
+    border-top: 1px solid #d1d5db !important;
+    border-bottom: none !important;
+    margin: 8px 0 !important;
+    padding: 0 !important;
+    height: 1px !important;
+    min-height: 1px !important;
+    max-height: 1px !important;
+    opacity: 1 !important;
+    cursor: default !important;
+    pointer-events: none !important;
+    background: #d1d5db !important;
+    color: transparent !important;
+    overflow: visible !important;
+    line-height: 0 !important;
+    font-size: 0 !important;
+}
+
+.chart-picker sp-menu-item.menu-divider::before,
+.chart-picker sp-menu-item.menu-divider::after,
+.chart-picker sp-menu-item[disabled].menu-divider::before,
+.chart-picker sp-menu-item[disabled].menu-divider::after {
+    display: none !important;
+    content: none !important;
+}
+
+.charts-container sp-picker::part(listbox) {
+    padding-left: 0;
+}
+
+.chart-actions {
+    width: 100%;
+    margin-top: 24px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.add-chart-button,
+.import-csv-button {
+    flex: 1;
+    min-width: 0;
+    color: white !important;
+    border: none !important;
+    padding: 12px 24px !important;
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.add-chart-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3) !important;
+}
+
+.add-chart-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+}
+
+.add-chart-button:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3) !important;
+}
+
+.add-chart-button:disabled {
+    background: #9ca3af !important;
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
+    box-shadow: none !important;
+}
+
+.import-csv-button {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3) !important;
+}
+
+.import-csv-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
+}
+
+.import-csv-button:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+}
+
+.import-csv-button:disabled {
+    background: #9ca3af !important;
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
+    box-shadow: none !important;
+}
+
+.sandbox-status {
+    width: 100%;
+    padding: 8px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.status-message {
+    font-size: 12px;
+    color: #666;
+    margin: 0;
+}

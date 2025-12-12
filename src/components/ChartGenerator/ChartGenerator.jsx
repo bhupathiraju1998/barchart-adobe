@@ -1,0 +1,189 @@
+import React, { useState, useRef, useCallback } from 'react';
+import ChartPicker from '../Charts/ChartPicker';
+import ChartPreview from '../Charts/ChartPreview';
+import ChartActions from '../Charts/ChartActions';
+import ThemePicker from '../Themes/ThemePicker';
+import UploadModal from '../Charts/UploadModal';
+import ChartStylingOptions from '../Charts/ChartStylingOptions';
+import './ChartGenerator.css';
+
+const ChartGenerator = ({ sandboxProxy }) => {
+    const [selectedChart, setSelectedChart] = useState('bar');
+    const [selectedTheme, setSelectedTheme] = useState('default');
+    const [isAdding, setIsAdding] = useState(false);
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [importedData, setImportedData] = useState(null);
+    const [stylingOptions, setStylingOptions] = useState({
+        // Common options
+        labelVisible: true,
+        valueVisible: true,
+        fontFamily: 'Arial',
+        fontStyle: 'normal',
+        fontWeight: 400,
+        fontSize: 12,
+        // Axis options
+        xAxisRotation: 0,
+        yAxisRotation: 0,
+        // Line/Area options
+        lineWidth: 3,
+        lineSmooth: true,
+        showDataPoints: false,
+        pointSize: 8,
+        // Bar options
+        barWidth: 60,
+        barBorderRadius: 4,
+        barSpacing: 0,
+        // Pie options
+        innerRadius: 0,
+        outerRadius: 40,
+        labelLineLength: 15,
+        showLegend: true,
+        // Funnel options
+        funnelWidth: 80,
+        funnelGap: 2,
+        funnelLabelPosition: 'inside',
+        funnelSort: 'descending',
+        // Scatter options
+        scatterPointSize: 20,
+        scatterPointShape: 'circle',
+        scatterShowLabels: true,
+        scatterSort: 'none',
+        scatterLabelPosition: 'top',
+        // Area options
+        areaOpacity: 50
+    });
+    const chartRef = useRef(null);
+
+    const handleChartRef = useCallback((ref) => {
+        if (ref && ref.current) {
+            chartRef.current = ref.current;
+        }
+    }, []);
+
+    const handleChartChange = useCallback((value) => {
+        console.log('🟢 [ChartGenerator] Chart change requested:', value);
+        setSelectedChart(value);
+    }, []);
+
+    const handleThemeChange = useCallback((theme) => {
+        console.log('🟢 [ChartGenerator] Theme change requested:', theme);
+        setSelectedTheme(theme);
+    }, []);
+
+    const handleAddToPage = useCallback(async () => {
+        if (!sandboxProxy) {
+            alert("Please wait for the add-on to initialize.");
+            return;
+        }
+
+        if (!chartRef.current) {
+            alert("Chart not ready. Please wait a moment and try again.");
+            return;
+        }
+
+        setIsAdding(true);
+        try {
+            console.log("🟢 [Chart] Starting chart export and insertion...");
+
+            // Get the ECharts instance
+            const echartsInstance = chartRef.current.getEchartsInstance();
+            if (!echartsInstance) {
+                throw new Error("Failed to get ECharts instance");
+            }
+
+            // Export chart as data URL (PNG format)
+            const dataUrl = echartsInstance.getDataURL({
+                type: 'png',
+                pixelRatio: 2,
+                backgroundColor: '#fff'
+            });
+
+            console.log("🟢 [Chart] Chart exported to data URL");
+
+            // Convert data URL to blob
+            const response = await fetch(dataUrl);
+            const blob = await response.blob();
+            console.log("🟢 [Chart] Chart converted to blob:", blob);
+
+            // Use sandbox function to add chart to design
+            const result = await sandboxProxy.addChartToDesign(blob);
+
+            if (result.success) {
+                console.log("✅ [Chart] Chart added to design successfully!");
+            } else {
+                alert(result.error || "Failed to add chart to design");
+            }
+        } catch (error) {
+            console.error("❌ [Chart] Error adding chart to design:", error);
+            alert(`Error: ${error.message}`);
+        } finally {
+            setIsAdding(false);
+        }
+    }, [sandboxProxy]);
+
+    const handleImportCSV = useCallback(() => {
+        if (!sandboxProxy) {
+            alert("Please wait for the add-on to initialize.");
+            return;
+        }
+        
+        console.log("🟢 [ChartGenerator] Import CSV clicked");
+        setIsUploadModalOpen(true);
+    }, [sandboxProxy]);
+
+    const handleDataUploaded = useCallback((chartData) => {
+        console.log("🟢 [ChartGenerator] Data uploaded:", chartData);
+        setImportedData(chartData);
+        setIsUploadModalOpen(false);
+    }, []);
+
+    const handleCloseModal = useCallback(() => {
+        setIsUploadModalOpen(false);
+    }, []);
+
+    const handleStylingChange = useCallback((newOptions) => {
+        console.log('🟢 [ChartGenerator] Styling options changed:', newOptions);
+        setStylingOptions(newOptions);
+    }, []);
+
+    return (
+        <div className="chart-generator-container">
+            <div className="pickers-row">
+                <ChartPicker 
+                    selectedChart={selectedChart}
+                    onChartChange={handleChartChange}
+                />
+                <ThemePicker 
+                    selectedTheme={selectedTheme}
+                    onThemeChange={handleThemeChange}
+                />
+            </div>
+            <ChartPreview 
+                chartType={selectedChart}
+                theme={selectedTheme}
+                onChartRef={handleChartRef}
+                importedData={importedData}
+                stylingOptions={stylingOptions}
+            />
+            <ChartActions 
+                sandboxProxy={sandboxProxy}
+                isAdding={isAdding}
+                onAddToPage={handleAddToPage}
+                onImportCSV={handleImportCSV}
+            />
+            <ChartStylingOptions 
+                chartType={selectedChart}
+                stylingOptions={stylingOptions}
+                onStylingChange={handleStylingChange}
+            />
+            <UploadModal 
+                isOpen={isUploadModalOpen}
+                onClose={handleCloseModal}
+                onDataUploaded={handleDataUploaded}
+            />
+        </div>
+    );
+};
+
+export default ChartGenerator;
+

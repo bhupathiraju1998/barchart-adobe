@@ -1,0 +1,88 @@
+.tabs-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+    height: 100%;
+}
+
+.custom-tabs {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.custom-tabs::part(tablist) {
+    display: flex !important;
+    width: 100% !important;
+    flex-direction: row !important;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+}
+
+.tabs-container sp-tab {
+    flex: 1 !important;
+    flex-basis: 50% !important;
+    width: 50% !important;
+    min-width: 0 !important;
+    max-width: 50% !important;
+    text-align: center !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+.custom-tabs sp-tab-panel {
+    flex: 1 1 0;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    position: relative !important;
+}
+
+.custom-tabs sp-tab-panel[selected] {
+    display: flex !important;
+}
+
+.tab-panel-content {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    /* Show scrollbar */
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: #888 #f1f1f1; /* Firefox */
+    position: relative;
+    box-sizing: border-box;
+}
+
+/* Custom scrollbar for Chrome, Safari and Opera */
+.tab-panel-content::-webkit-scrollbar {
+    width: 8px;
+    display: block;
+}
+
+.tab-panel-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.tab-panel-content::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.tab-panel-content::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+

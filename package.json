@@ -15,10 +15,18 @@
         "panel"
     ],
     "dependencies": {
+        "@spectrum-web-components/button": "^1.10.0",
+        "@spectrum-web-components/button-group": "^1.10.0",
+        "@spectrum-web-components/menu": "^1.10.0",
+        "@spectrum-web-components/picker": "^1.10.0",
+        "@spectrum-web-components/tabs": "^1.10.0",
         "@swc-react/button": "1.7.0",
         "@swc-react/theme": "1.7.0",
+        "echarts": "^6.0.0",
+        "echarts-for-react": "^3.0.5",
         "react": "18.2.0",
-        "react-dom": "18.2.0"
+        "react-dom": "18.2.0",
+        "xlsx": "^0.18.5"
     },
     "devDependencies": {
         "@adobe/ccweb-add-on-scripts": "^3.4.0",

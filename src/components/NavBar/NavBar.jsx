@@ -26,3 +26,5 @@ const NavBar = ({ planType = "Basic Plan User", planDescription = "Access to bas
 
 export default NavBar;
 
+
+

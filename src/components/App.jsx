@@ -5,19 +5,13 @@ import "@spectrum-web-components/theme/express/theme-light.js";
 
 // To learn more about using "swc-react" visit:
 // https://opensource.adobe.com/spectrum-web-components/using-swc-react/
-import { Button } from "@swc-react/button";
 import { Theme } from "@swc-react/theme";
-import React, { useState } from "react";
+import React from "react";
 import NavBar from "./NavBar/NavBar";
+import ChartGenerator from "./ChartGenerator/ChartGenerator";
 import "./App.css";
 
-const App = ({ addOnUISdk }) => {
-    const [buttonLabel, setButtonLabel] = useState("Click me");
-
-    function handleClick() {
-        setButtonLabel("Clicked");
-    }
-
+const App = ({ addOnUISdk, sandboxProxy }) => {
     function handleUpgrade() {
         // Handle upgrade action
         console.log("Upgrade clicked");
@@ -34,14 +28,7 @@ const App = ({ addOnUISdk }) => {
                     planDescription="Access to basic features only"
                     onUpgrade={handleUpgrade}
                 />
-                <div className="scrollable-content">
-                    <div className="container">
-                        <Button size="m" onClick={handleClick}>
-                            {buttonLabel}
-                        </Button>
-                        {/* Your chart generator content will go here */}
-                    </div>
-                </div>
+                <ChartGenerator sandboxProxy={sandboxProxy} />
             </div>
         </Theme>
     );

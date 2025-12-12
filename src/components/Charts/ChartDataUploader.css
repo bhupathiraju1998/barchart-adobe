@@ -1,0 +1,216 @@
+.chart-data-uploader {
+  margin-bottom: 0.75rem;
+}
+
+/* Upload Success */
+.upload-success {
+  text-align: center;
+  padding: 10px;
+}
+
+.success-message {
+  background: #e8f5e8;
+  border: 1px solid #c3e6c3;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.success-message p {
+  margin: 5px 0;
+  color: #155724;
+  font-weight: 500;
+}
+
+.success-message p:first-child {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Warning Message */
+.warning-message {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 0.75rem;
+  text-align: left;
+}
+
+.warning-message p {
+  margin: 0 0 12px 0;
+  color: #856404;
+  font-weight: 500;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Sample Preview Container */
+.sample-preview-container {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ffeaa7;
+}
+
+.sample-preview-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 8px;
+}
+
+.download-sample-link {
+  color: #0066cc;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.9rem;
+  font-weight: normal;
+  transition: opacity 0.2s ease;
+  text-align: right;
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.download-sample-link:hover {
+  opacity: 0.7;
+}
+
+.sample-preview-container .sample-preview-title {
+  margin: 6px 0 6px 0;
+  color: #856404;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left !important;
+  display: block;
+  width: 100%;
+}
+
+.sample-preview-table-wrapper {
+  background: white;
+  border-radius: 6px;
+  overflow-x: auto;
+  overflow-y: visible;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 12px;
+}
+
+.sample-preview-table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.sample-preview-table th {
+  background-color: #f9fafb;
+  color: #374151;
+  font-weight: 600;
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.sample-preview-table td {
+  padding: 8px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #6b7280;
+  word-break: break-word;
+  max-width: 150px;
+}
+
+.sample-preview-table tr:last-child td {
+  border-bottom: none;
+}
+
+.sample-preview-more {
+  margin: 8px 0 0 0;
+  padding: 8px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 11px;
+  font-style: italic;
+  background-color: #f9fafb;
+}
+
+.try-sample-button {
+  width: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.try-sample-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.import-section {
+  background-color: #e9ecef;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.import-table-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  margin-bottom: 0.75rem;
+}
+
+.import-table-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.import-table-button:disabled {
+  background: linear-gradient(135deg, #aaa 0%, #999 100%);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.drop-zone {
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 1rem;
+  background-color: white;
+  transition: all 0.3s ease;
+}
+
+.drop-zone.drag-over {
+  border-color: #8b5cf6;
+  background-color: #f3f4f6;
+}
+
+.drop-text {
+  margin: 0.25rem 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.drop-or {
+  margin: 0.25rem 0;
+  color: #9ca3af;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
