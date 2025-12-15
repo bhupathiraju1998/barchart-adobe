@@ -20,7 +20,6 @@ const ChartPicker = React.memo(({ selectedChart, onChartChange }) => {
         { label: 'Pie Chart', value: 'pie' },
         { label: 'Area Chart', value: 'area' },
         { label: 'Scatter Chart', value: 'scatter' },
-        { type: 'divider' },
         { label: 'Pie Chart (Doughnut)', value: 'pie-doughnut' },
         { label: 'Pie Chart (Nightingale)', value: 'pie-nightingale' },
         { label: 'Funnel Chart', value: 'funnel' },

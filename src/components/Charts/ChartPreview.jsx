@@ -82,61 +82,88 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
 
     const currentTheme = themeColors[theme] || themeColors.default;
 
-    // Helper function to get text style based on styling options (for labels, axis labels, legend, etc.)
-    const getTextStyle = (defaultStyle = {}, isValue = false) => {
-        if (!stylingOptions) {
-            return defaultStyle;
-        }
-
-        const visibility = isValue ? stylingOptions.valueVisible : stylingOptions.labelVisible;
-        const baseStyle = {
-            show: visibility !== false,
-            fontSize: stylingOptions.fontSize ?? 12,
-            fontFamily: stylingOptions.fontFamily ?? 'Arial',
-            fontWeight: stylingOptions.fontWeight ?? 400,
-            color: currentTheme.textColor
-        };
-
-        // Apply font style
-        if (stylingOptions.fontStyle === 'bold') {
-            baseStyle.fontWeight = 'bold';
-            baseStyle.fontStyle = 'normal';
-        } else if (stylingOptions.fontStyle === 'italic') {
-            baseStyle.fontStyle = 'italic';
-        } else {
-            baseStyle.fontStyle = 'normal';
-        }
-
-        return {
-            ...defaultStyle,
-            ...baseStyle,
-            show: visibility !== false && (defaultStyle.show !== false)
-        };
-    };
-
-    // Helper function to get label style (for category labels, axis labels, legend)
-    const getLabelStyle = (defaultStyle = {}) => getTextStyle(defaultStyle, false);
-
-    // Helper function to get value style (for data values, tooltip values)
-    const getValueStyle = (defaultStyle = {}) => getTextStyle(defaultStyle, true);
-
     // Memoize chart option calculation to prevent unnecessary recalculations
     const chartOption = useMemo(() => {
-        console.log('🟣 [ChartPreview] Computing chart option for:', { chartType, theme, hasImportedData: !!importedData, stylingOptions });
+        console.log('🟣 [ChartPreview] Computing chart option for:', { 
+            chartType, 
+            theme, 
+            hasImportedData: !!importedData, 
+            stylingOptions,
+            fontFamily: stylingOptions?.fontFamily,
+            fontStyle: stylingOptions?.fontStyle,
+            fontSize: stylingOptions?.fontSize
+        });
+        
+        // Helper function to get text style based on styling options (for labels, axis labels, legend, etc.)
+        // Defined inside useMemo to ensure it uses the latest stylingOptions
+        const getTextStyle = (defaultStyle = {}, isValue = false) => {
+            if (!stylingOptions) {
+                const result = {
+                    ...defaultStyle,
+                    fontFamily: 'Arial',
+                    fontStyle: 'normal'
+                };
+                console.log('🔵 [ChartPreview] getTextStyle (no stylingOptions):', { isValue, result });
+                return result;
+            }
+
+            const visibility = isValue ? stylingOptions.valueVisible : stylingOptions.labelVisible;
+            const baseStyle = {
+                show: visibility !== false,
+                fontSize: stylingOptions.fontSize ?? 12,
+                fontFamily: stylingOptions.fontFamily ?? 'Arial',
+                fontWeight: stylingOptions.fontWeight ?? 400,
+                color: currentTheme.textColor
+            };
+
+            // Apply font style - ensure fontFamily and fontStyle are always set
+            if (stylingOptions.fontStyle === 'bold') {
+                baseStyle.fontWeight = 'bold';
+                baseStyle.fontStyle = 'normal';
+            } else if (stylingOptions.fontStyle === 'italic') {
+                baseStyle.fontStyle = 'italic';
+            } else {
+                baseStyle.fontStyle = stylingOptions.fontStyle ?? 'normal';
+            }
+
+            // Ensure fontFamily is always explicitly set
+            baseStyle.fontFamily = stylingOptions.fontFamily ?? 'Arial';
+
+            const result = {
+                ...defaultStyle,
+                ...baseStyle,
+                show: visibility !== false && (defaultStyle.show !== false)
+            };
+            
+            console.log('🔵 [ChartPreview] getTextStyle:', {
+                isValue,
+                stylingOptions_fontFamily: stylingOptions.fontFamily,
+                stylingOptions_fontStyle: stylingOptions.fontStyle,
+                result_fontFamily: result.fontFamily,
+                result_fontStyle: result.fontStyle,
+                result_fontWeight: result.fontWeight,
+                result_fontSize: result.fontSize
+            });
+
+            return result;
+        };
+
+        // Helper function to get label style (for category labels, axis labels, legend)
+        const getLabelStyle = (defaultStyle = {}) => getTextStyle(defaultStyle, false);
+
+        // Helper function to get value style (for data values, tooltip values)
+        const getValueStyle = (defaultStyle = {}) => getTextStyle(defaultStyle, true);
+
         const baseConfig = {
             backgroundColor: currentTheme.backgroundColor,
             textStyle: getTextStyle({
-                color: currentTheme.textColor,
-                fontSize: stylingOptions?.fontSize ?? 12,
-                fontFamily: stylingOptions?.fontFamily ?? 'Arial'
+                color: currentTheme.textColor
             }),
             tooltip: {
                 backgroundColor: currentTheme.backgroundColor,
                 borderColor: currentTheme.gridColor,
                 textStyle: getTextStyle({
-                    color: currentTheme.textColor,
-                    fontSize: stylingOptions?.fontSize ?? 12,
-                    fontFamily: stylingOptions?.fontFamily ?? 'Arial'
+                    color: currentTheme.textColor
                 })
             },
             grid: {
@@ -168,7 +195,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                         data: commonData,
                         axisLabel: {
                             ...getLabelStyle({
-                                fontSize: stylingOptions?.fontSize ?? 12,
                                 color: currentTheme.textColor
                             }),
                             rotate: stylingOptions?.xAxisRotation ?? 0
@@ -183,7 +209,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                         type: 'value',
                         axisLabel: {
                             ...getLabelStyle({
-                                fontSize: stylingOptions?.fontSize ?? 12,
                                 color: currentTheme.textColor
                             }),
                             rotate: stylingOptions?.yAxisRotation ?? 0
@@ -218,7 +243,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                             label: getValueStyle({
                                 show: true,
                                 position: 'top',
-                                fontSize: stylingOptions?.fontSize ?? 12,
                                 color: currentTheme.textColor
                             })
                         }
@@ -237,7 +261,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                         data: commonData,
                         axisLabel: {
                             ...getLabelStyle({
-                                fontSize: stylingOptions?.fontSize ?? 12,
                                 color: currentTheme.textColor
                             }),
                             rotate: stylingOptions?.xAxisRotation ?? 0
@@ -252,7 +275,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                         type: 'value',
                         axisLabel: {
                             ...getLabelStyle({
-                                fontSize: stylingOptions?.fontSize ?? 12,
                                 color: currentTheme.textColor
                             }),
                             rotate: stylingOptions?.yAxisRotation ?? 0
@@ -299,9 +321,7 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                         bottom: 0,
                         show: stylingOptions?.showLegend !== false,
                         textStyle: getLabelStyle({
-                            color: currentTheme.textColor,
-                            fontSize: stylingOptions?.fontSize ?? 12,
-                            fontFamily: stylingOptions?.fontFamily ?? 'Arial'
+                            color: currentTheme.textColor
                         })
                     },
                     series: [
@@ -428,7 +448,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                         nameGap: 30,
                         axisLabel: {
                             ...getLabelStyle({
-                                fontSize: stylingOptions?.fontSize ?? 12,
                                 color: currentTheme.textColor
                             }),
                             rotate: stylingOptions?.xAxisRotation ?? 0
@@ -451,7 +470,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                         nameGap: 50,
                         axisLabel: {
                             ...getLabelStyle({
-                                fontSize: stylingOptions?.fontSize ?? 12,
                                 color: currentTheme.textColor
                             }),
                             rotate: stylingOptions?.yAxisRotation ?? 0
@@ -519,7 +537,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                         type: 'value',
                         axisLabel: {
                             ...getLabelStyle({
-                                fontSize: stylingOptions?.fontSize ?? 12,
                                 color: currentTheme.textColor
                             }),
                             rotate: stylingOptions?.xAxisRotation ?? 0
@@ -540,7 +557,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                         data: commonData,
                         axisLabel: {
                             ...getLabelStyle({
-                                fontSize: stylingOptions?.fontSize ?? 12,
                                 color: currentTheme.textColor
                             }),
                             rotate: stylingOptions?.yAxisRotation ?? 0
@@ -570,7 +586,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                             label: getValueStyle({
                                 show: true,
                                 position: 'right',
-                                fontSize: stylingOptions?.fontSize ?? 12,
                                 color: currentTheme.textColor
                             })
                         }
@@ -590,9 +605,7 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                         bottom: 0,
                         show: stylingOptions?.showLegend !== false,
                         textStyle: getLabelStyle({
-                            color: currentTheme.textColor,
-                            fontSize: stylingOptions?.fontSize ?? 12,
-                            fontFamily: stylingOptions?.fontFamily ?? 'Arial'
+                            color: currentTheme.textColor
                         })
                     },
                     series: [
@@ -651,9 +664,7 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                         bottom: 0,
                         show: stylingOptions?.showLegend !== false,
                         textStyle: getLabelStyle({
-                            color: currentTheme.textColor,
-                            fontSize: stylingOptions?.fontSize ?? 12,
-                            fontFamily: stylingOptions?.fontFamily ?? 'Arial'
+                            color: currentTheme.textColor
                         })
                     },
                     series: [
@@ -712,9 +723,7 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                     legend: {
                         data: commonData,
                         textStyle: getLabelStyle({
-                            color: currentTheme.textColor,
-                            fontSize: stylingOptions?.fontSize ?? 12,
-                            fontFamily: stylingOptions?.fontFamily ?? 'Arial'
+                            color: currentTheme.textColor
                         })
                     },
                     series: [
@@ -734,8 +743,7 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                             label: getValueStyle({
                                 show: true,
                                 position: stylingOptions?.funnelLabelPosition ?? 'inside',
-                                color: currentTheme.textColor,
-                                fontSize: stylingOptions?.fontSize ?? 12
+                                color: currentTheme.textColor
                             }),
                             labelLine: {
                                 length: 10,
@@ -792,7 +800,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                             name: 'Sales',
                             position: 'left',
                             axisLabel: getLabelStyle({
-                                fontSize: stylingOptions?.fontSize ?? 12,
                                 color: currentTheme.textColor,
                                 rotate: stylingOptions?.yAxisRotation ?? 0
                             }),
@@ -812,7 +819,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                             name: 'Target',
                             position: 'right',
                             axisLabel: getLabelStyle({
-                                fontSize: stylingOptions?.fontSize ?? 12,
                                 color: currentTheme.textColor,
                                 rotate: stylingOptions?.yAxisRotation ?? 0
                             }),
@@ -872,6 +878,31 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                 return baseConfig;
         }
     }, [chartType, theme, currentTheme, importedData, stylingOptions]);
+
+    // Log the final chart option to verify fontFamily and fontStyle are included
+    React.useEffect(() => {
+        if (chartOption) {
+            console.log('🟣 [ChartPreview] Final chart option computed:', {
+                hasXAxis: !!chartOption.xAxis,
+                hasYAxis: !!chartOption.yAxis,
+                hasLegend: !!chartOption.legend,
+                hasSeries: !!chartOption.series,
+                xAxisLabelFontFamily: chartOption.xAxis?.axisLabel?.fontFamily,
+                xAxisLabelFontStyle: chartOption.xAxis?.axisLabel?.fontStyle,
+                yAxisLabelFontFamily: chartOption.yAxis?.axisLabel?.fontFamily,
+                yAxisLabelFontStyle: chartOption.yAxis?.axisLabel?.fontStyle,
+                legendTextStyleFontFamily: chartOption.legend?.textStyle?.fontFamily,
+                legendTextStyleFontStyle: chartOption.legend?.textStyle?.fontStyle,
+                seriesLabelFontFamily: chartOption.series?.[0]?.label?.fontFamily,
+                seriesLabelFontStyle: chartOption.series?.[0]?.label?.fontStyle,
+                currentStylingOptions: {
+                    fontFamily: stylingOptions?.fontFamily,
+                    fontStyle: stylingOptions?.fontStyle,
+                    fontSize: stylingOptions?.fontSize
+                }
+            });
+        }
+    }, [chartOption, stylingOptions]);
 
     // For "default" theme, don't pass theme prop (use ECharts default)
     // For other themes, pass the theme name to use ECharts built-in themes

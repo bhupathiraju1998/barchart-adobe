@@ -48,6 +48,8 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
 
     const fontFamilyPickerRef = useRef(null);
     const fontStylePickerRef = useRef(null);
+    const xAxisRotationPickerRef = useRef(null);
+    const yAxisRotationPickerRef = useRef(null);
     const funnelLabelPositionPickerRef = useRef(null);
     const funnelSortPickerRef = useRef(null);
     const scatterPointShapePickerRef = useRef(null);
@@ -154,14 +156,201 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
         }
     }, [stylingOptions]);
 
-    // Sync picker values
+    // Sync picker values and set up event listeners for font family and font style
     useEffect(() => {
-        if (fontFamilyPickerRef.current) {
-            fontFamilyPickerRef.current.value = localOptions.fontFamily;
+        const fontFamilyPicker = fontFamilyPickerRef.current;
+        if (fontFamilyPicker) {
+            // Update value if it changed
+            if (fontFamilyPicker.value !== localOptions.fontFamily) {
+                fontFamilyPicker.value = localOptions.fontFamily;
+            }
+            
+            // Set up change event listener
+            const handleFontFamilyChangeEvent = (event) => {
+                const newFontFamily = event.target.value;
+                console.log('🟡 [ChartStylingOptions] Font Family changed via event listener:', {
+                    newFontFamily,
+                    previousFontFamily: localOptions.fontFamily,
+                    eventValue: event.target.value,
+                    eventType: event.type
+                });
+                // Use functional update to get latest localOptions
+                setLocalOptions(prev => {
+                    const newOptions = {
+                        ...prev,
+                        fontFamily: newFontFamily
+                    };
+                    console.log('🟡 [ChartStylingOptions] handleChange called (from fontFamily event):', {
+                        key: 'fontFamily',
+                        value: newFontFamily,
+                        previousValue: prev.fontFamily,
+                        newOptions_fontFamily: newOptions.fontFamily,
+                        newOptions_fontStyle: newOptions.fontStyle,
+                        newOptions_fontSize: newOptions.fontSize
+                    });
+                    if (onStylingChange) {
+                        console.log('🟡 [ChartStylingOptions] Calling onStylingChange with:', {
+                            fontFamily: newOptions.fontFamily,
+                            fontStyle: newOptions.fontStyle,
+                            fontSize: newOptions.fontSize
+                        });
+                        onStylingChange(newOptions);
+                    }
+                    return newOptions;
+                });
+            };
+            
+            fontFamilyPicker.addEventListener('change', handleFontFamilyChangeEvent);
+            return () => {
+                fontFamilyPicker.removeEventListener('change', handleFontFamilyChangeEvent);
+            };
         }
-        if (fontStylePickerRef.current) {
-            fontStylePickerRef.current.value = localOptions.fontStyle;
+    }, [localOptions.fontFamily, onStylingChange]);
+
+    useEffect(() => {
+        const fontStylePicker = fontStylePickerRef.current;
+        if (fontStylePicker) {
+            // Update value if it changed
+            if (fontStylePicker.value !== localOptions.fontStyle) {
+                fontStylePicker.value = localOptions.fontStyle;
+            }
+            
+            // Set up change event listener
+            const handleFontStyleChangeEvent = (event) => {
+                const newFontStyle = event.target.value;
+                console.log('🟡 [ChartStylingOptions] Font Style changed via event listener:', {
+                    newFontStyle,
+                    previousFontStyle: localOptions.fontStyle,
+                    eventValue: event.target.value,
+                    eventType: event.type
+                });
+                // Use functional update to get latest localOptions
+                setLocalOptions(prev => {
+                    const newOptions = {
+                        ...prev,
+                        fontStyle: newFontStyle
+                    };
+                    console.log('🟡 [ChartStylingOptions] handleChange called (from fontStyle event):', {
+                        key: 'fontStyle',
+                        value: newFontStyle,
+                        previousValue: prev.fontStyle,
+                        newOptions_fontFamily: newOptions.fontFamily,
+                        newOptions_fontStyle: newOptions.fontStyle,
+                        newOptions_fontSize: newOptions.fontSize
+                    });
+                    if (onStylingChange) {
+                        console.log('🟡 [ChartStylingOptions] Calling onStylingChange with:', {
+                            fontFamily: newOptions.fontFamily,
+                            fontStyle: newOptions.fontStyle,
+                            fontSize: newOptions.fontSize
+                        });
+                        onStylingChange(newOptions);
+                    }
+                    return newOptions;
+                });
+            };
+            
+            fontStylePicker.addEventListener('change', handleFontStyleChangeEvent);
+            return () => {
+                fontStylePicker.removeEventListener('change', handleFontStyleChangeEvent);
+            };
         }
+    }, [localOptions.fontStyle, onStylingChange]);
+
+    // Set up event listener for X-Axis Rotation picker
+    useEffect(() => {
+        const xAxisRotationPicker = xAxisRotationPickerRef.current;
+        if (xAxisRotationPicker) {
+            // Update value if it changed
+            if (xAxisRotationPicker.value !== localOptions.xAxisRotation.toString()) {
+                xAxisRotationPicker.value = localOptions.xAxisRotation.toString();
+            }
+            
+            // Set up change event listener
+            const handleXAxisRotationChangeEvent = (event) => {
+                const newRotation = parseInt(event.target.value, 10);
+                console.log('🟡 [ChartStylingOptions] X-Axis Rotation changed via event listener:', {
+                    newRotation,
+                    previousRotation: localOptions.xAxisRotation,
+                    eventValue: event.target.value,
+                    eventType: event.type
+                });
+                // Use functional update to get latest localOptions
+                setLocalOptions(prev => {
+                    const newOptions = {
+                        ...prev,
+                        xAxisRotation: newRotation
+                    };
+                    console.log('🟡 [ChartStylingOptions] handleChange called (from xAxisRotation event):', {
+                        key: 'xAxisRotation',
+                        value: newRotation,
+                        previousValue: prev.xAxisRotation,
+                        newOptions_xAxisRotation: newOptions.xAxisRotation,
+                        newOptions_yAxisRotation: newOptions.yAxisRotation
+                    });
+                    if (onStylingChange) {
+                        console.log('🟡 [ChartStylingOptions] Calling onStylingChange with xAxisRotation:', newRotation);
+                        onStylingChange(newOptions);
+                    }
+                    return newOptions;
+                });
+            };
+            
+            xAxisRotationPicker.addEventListener('change', handleXAxisRotationChangeEvent);
+            return () => {
+                xAxisRotationPicker.removeEventListener('change', handleXAxisRotationChangeEvent);
+            };
+        }
+    }, [localOptions.xAxisRotation, onStylingChange]);
+
+    // Set up event listener for Y-Axis Rotation picker
+    useEffect(() => {
+        const yAxisRotationPicker = yAxisRotationPickerRef.current;
+        if (yAxisRotationPicker) {
+            // Update value if it changed
+            if (yAxisRotationPicker.value !== localOptions.yAxisRotation.toString()) {
+                yAxisRotationPicker.value = localOptions.yAxisRotation.toString();
+            }
+            
+            // Set up change event listener
+            const handleYAxisRotationChangeEvent = (event) => {
+                const newRotation = parseInt(event.target.value, 10);
+                console.log('🟡 [ChartStylingOptions] Y-Axis Rotation changed via event listener:', {
+                    newRotation,
+                    previousRotation: localOptions.yAxisRotation,
+                    eventValue: event.target.value,
+                    eventType: event.type
+                });
+                // Use functional update to get latest localOptions
+                setLocalOptions(prev => {
+                    const newOptions = {
+                        ...prev,
+                        yAxisRotation: newRotation
+                    };
+                    console.log('🟡 [ChartStylingOptions] handleChange called (from yAxisRotation event):', {
+                        key: 'yAxisRotation',
+                        value: newRotation,
+                        previousValue: prev.yAxisRotation,
+                        newOptions_xAxisRotation: newOptions.xAxisRotation,
+                        newOptions_yAxisRotation: newOptions.yAxisRotation
+                    });
+                    if (onStylingChange) {
+                        console.log('🟡 [ChartStylingOptions] Calling onStylingChange with yAxisRotation:', newRotation);
+                        onStylingChange(newOptions);
+                    }
+                    return newOptions;
+                });
+            };
+            
+            yAxisRotationPicker.addEventListener('change', handleYAxisRotationChangeEvent);
+            return () => {
+                yAxisRotationPicker.removeEventListener('change', handleYAxisRotationChangeEvent);
+            };
+        }
+    }, [localOptions.yAxisRotation, onStylingChange]);
+
+    // Sync other picker values
+    useEffect(() => {
         if (funnelLabelPositionPickerRef.current) {
             funnelLabelPositionPickerRef.current.value = localOptions.funnelLabelPosition;
         }
@@ -177,7 +366,7 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
         if (scatterLabelPositionPickerRef.current) {
             scatterLabelPositionPickerRef.current.value = localOptions.scatterLabelPosition;
         }
-    }, [localOptions.fontFamily, localOptions.fontStyle, localOptions.funnelLabelPosition, localOptions.funnelSort, localOptions.scatterPointShape]);
+    }, [localOptions.funnelLabelPosition, localOptions.funnelSort, localOptions.scatterPointShape]);
 
     const handleToggle = (key) => {
         const newOptions = {
@@ -195,18 +384,43 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
             ...localOptions,
             [key]: value
         };
+        console.log('🟡 [ChartStylingOptions] handleChange called:', {
+            key,
+            value,
+            previousValue: localOptions[key],
+            newOptions_fontFamily: newOptions.fontFamily,
+            newOptions_fontStyle: newOptions.fontStyle,
+            newOptions_fontSize: newOptions.fontSize
+        });
         setLocalOptions(newOptions);
         if (onStylingChange) {
+            console.log('🟡 [ChartStylingOptions] Calling onStylingChange with:', {
+                fontFamily: newOptions.fontFamily,
+                fontStyle: newOptions.fontStyle,
+                fontSize: newOptions.fontSize
+            });
             onStylingChange(newOptions);
         }
     };
 
     const handleFontFamilyChange = (event) => {
-        handleChange('fontFamily', event.target.value);
+        const newFontFamily = event.target.value;
+        console.log('🟡 [ChartStylingOptions] Font Family changed in UI:', {
+            newFontFamily,
+            previousFontFamily: localOptions.fontFamily,
+            eventValue: event.target.value
+        });
+        handleChange('fontFamily', newFontFamily);
     };
 
     const handleFontStyleChange = (event) => {
-        handleChange('fontStyle', event.target.value);
+        const newFontStyle = event.target.value;
+        console.log('🟡 [ChartStylingOptions] Font Style changed in UI:', {
+            newFontStyle,
+            previousFontStyle: localOptions.fontStyle,
+            eventValue: event.target.value
+        });
+        handleChange('fontStyle', newFontStyle);
     };
 
     const handleFontWeightChange = (event) => {
@@ -289,7 +503,6 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                     ref={fontFamilyPickerRef}
                     label="Font Family"
                     value={localOptions.fontFamily}
-                    onInput={handleFontFamilyChange}
                     className="styling-picker"
                 >
                     {fontFamilies.map((font) => (
@@ -309,7 +522,6 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                     ref={fontStylePickerRef}
                     label="Font Style"
                     value={localOptions.fontStyle}
-                    onInput={handleFontStyleChange}
                     className="styling-picker"
                 >
                     {fontStyles.map((style) => (
@@ -383,9 +595,9 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                             <RefreshIcon onClick={() => handleReset('xAxisRotation', 0)} />
                         </h3>
                         <sp-picker
+                            ref={xAxisRotationPickerRef}
                             label="X-Axis Rotation"
                             value={localOptions.xAxisRotation.toString()}
-                            onInput={handlePickerChange('xAxisRotation')}
                             className="styling-picker"
                         >
                             {rotationOptions.map((option) => (
@@ -402,9 +614,9 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                             <RefreshIcon onClick={() => handleReset('yAxisRotation', 0)} />
                         </h3>
                         <sp-picker
+                            ref={yAxisRotationPickerRef}
                             label="Y-Axis Rotation"
                             value={localOptions.yAxisRotation.toString()}
-                            onInput={handlePickerChange('yAxisRotation')}
                             className="styling-picker"
                         >
                             {rotationOptions.map((option) => (

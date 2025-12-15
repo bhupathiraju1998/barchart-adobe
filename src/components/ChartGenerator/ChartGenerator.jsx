@@ -54,6 +54,17 @@ const ChartGenerator = ({ sandboxProxy }) => {
     });
     const chartRef = useRef(null);
 
+    // Log when stylingOptions state changes
+    React.useEffect(() => {
+        console.log('🟢 [ChartGenerator] stylingOptions state updated:', {
+            fontFamily: stylingOptions?.fontFamily,
+            fontStyle: stylingOptions?.fontStyle,
+            fontSize: stylingOptions?.fontSize,
+            fontWeight: stylingOptions?.fontWeight,
+            fullOptions: stylingOptions
+        });
+    }, [stylingOptions]);
+
     const handleChartRef = useCallback((ref) => {
         if (ref && ref.current) {
             chartRef.current = ref.current;
@@ -84,12 +95,33 @@ const ChartGenerator = ({ sandboxProxy }) => {
         setIsAdding(true);
         try {
             console.log("🟢 [Chart] Starting chart export and insertion...");
+            console.log("🟢 [Chart] Current styling options when adding to page:", {
+                fontFamily: stylingOptions?.fontFamily,
+                fontStyle: stylingOptions?.fontStyle,
+                fontSize: stylingOptions?.fontSize,
+                fontWeight: stylingOptions?.fontWeight,
+                fullStylingOptions: stylingOptions
+            });
 
             // Get the ECharts instance
             const echartsInstance = chartRef.current.getEchartsInstance();
             if (!echartsInstance) {
                 throw new Error("Failed to get ECharts instance");
             }
+
+            // Get the current chart option to verify styling
+            const currentOption = echartsInstance.getOption();
+            console.log("🟢 [Chart] Current ECharts option (checking fontFamily/fontStyle):", {
+                hasXAxis: !!currentOption.xAxis,
+                hasYAxis: !!currentOption.yAxis,
+                hasLegend: !!currentOption.legend,
+                xAxisLabelFontFamily: currentOption.xAxis?.[0]?.axisLabel?.fontFamily,
+                xAxisLabelFontStyle: currentOption.xAxis?.[0]?.axisLabel?.fontStyle,
+                yAxisLabelFontFamily: currentOption.yAxis?.[0]?.axisLabel?.fontFamily,
+                yAxisLabelFontStyle: currentOption.yAxis?.[0]?.axisLabel?.fontStyle,
+                legendTextStyleFontFamily: currentOption.legend?.[0]?.textStyle?.fontFamily,
+                legendTextStyleFontStyle: currentOption.legend?.[0]?.textStyle?.fontStyle
+            });
 
             // Export chart as data URL (PNG format)
             const dataUrl = echartsInstance.getDataURL({
@@ -98,7 +130,10 @@ const ChartGenerator = ({ sandboxProxy }) => {
                 backgroundColor: '#fff'
             });
 
-            console.log("🟢 [Chart] Chart exported to data URL");
+            console.log("🟢 [Chart] Chart exported to data URL (with styling:", {
+                fontFamily: stylingOptions?.fontFamily,
+                fontStyle: stylingOptions?.fontStyle
+            }, ")");
 
             // Convert data URL to blob
             const response = await fetch(dataUrl);
@@ -109,7 +144,10 @@ const ChartGenerator = ({ sandboxProxy }) => {
             const result = await sandboxProxy.addChartToDesign(blob);
 
             if (result.success) {
-                console.log("✅ [Chart] Chart added to design successfully!");
+                console.log("✅ [Chart] Chart added to design successfully with styling:", {
+                    fontFamily: stylingOptions?.fontFamily,
+                    fontStyle: stylingOptions?.fontStyle
+                });
             } else {
                 alert(result.error || "Failed to add chart to design");
             }
@@ -119,7 +157,7 @@ const ChartGenerator = ({ sandboxProxy }) => {
         } finally {
             setIsAdding(false);
         }
-    }, [sandboxProxy]);
+    }, [sandboxProxy, stylingOptions]);
 
     const handleImportCSV = useCallback(() => {
         if (!sandboxProxy) {
@@ -142,9 +180,16 @@ const ChartGenerator = ({ sandboxProxy }) => {
     }, []);
 
     const handleStylingChange = useCallback((newOptions) => {
-        console.log('🟢 [ChartGenerator] Styling options changed:', newOptions);
+        console.log('🟢 [ChartGenerator] Styling options changed:', {
+            newOptions,
+            fontFamily: newOptions?.fontFamily,
+            fontStyle: newOptions?.fontStyle,
+            fontSize: newOptions?.fontSize,
+            previousFontFamily: stylingOptions?.fontFamily,
+            previousFontStyle: stylingOptions?.fontStyle
+        });
         setStylingOptions(newOptions);
-    }, []);
+    }, [stylingOptions]);
 
     return (
         <div className="chart-generator-container">
