@@ -41,3 +41,27 @@
     flex-direction: column;
     min-height: min-content; /* Ensures content can expand beyond viewport */
 }
+
+/* Global styles for Spectrum Web Components menu items - high specificity */
+sp-menu-item,
+sp-picker sp-menu-item,
+.chart-picker sp-menu-item,
+.theme-picker sp-menu-item,
+.styling-picker sp-menu-item,
+.pickers-row .chart-picker sp-menu-item,
+.pickers-row .theme-picker sp-menu-item {
+    --spectrum-menu-item-padding-left: 20px !important;
+    --spectrum-menu-item-padding-right: 16px !important;
+    --spectrum-menu-item-padding-top: 12px !important;
+    --spectrum-menu-item-padding-bottom: 12px !important;
+    padding-left: 20px !important;
+    padding-right: 16px !important;
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+}
+
+/* Target the internal content of menu items */
+sp-menu-item::part(content),
+sp-menu-item::part(text) {
+    padding-left: 20px !important;
+}

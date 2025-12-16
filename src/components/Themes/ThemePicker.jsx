@@ -15,7 +15,7 @@ const ThemePicker = React.memo(({ selectedTheme, onThemeChange }) => {
     });
 
     const themeOptions = useMemo(() => [
-        { label: 'Default', value: 'default' },
+        { label: 'Default (Theme)', value: 'default' },
         { label: 'Vintage', value: 'vintage' },
         { label: 'Dark', value: 'dark' },
         { label: 'Westeros', value: 'westeros' },

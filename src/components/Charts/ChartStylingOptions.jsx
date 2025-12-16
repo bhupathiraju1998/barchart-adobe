@@ -20,7 +20,7 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
         // Line/Area options
         lineWidth: stylingOptions?.lineWidth ?? 3,
         lineSmooth: stylingOptions?.lineSmooth ?? true,
-        showDataPoints: stylingOptions?.showDataPoints ?? false,
+        showDataPoints: stylingOptions?.showDataPoints ?? (chartType === 'line' || chartType === 'area' ? true : false),
         pointSize: stylingOptions?.pointSize ?? 8,
         // Bar options
         barWidth: stylingOptions?.barWidth ?? 60,
@@ -133,7 +133,7 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                 yAxisRotation: stylingOptions.yAxisRotation ?? 0,
                 lineWidth: stylingOptions.lineWidth ?? 3,
                 lineSmooth: stylingOptions.lineSmooth ?? true,
-                showDataPoints: stylingOptions.showDataPoints ?? false,
+                showDataPoints: stylingOptions.showDataPoints !== undefined ? stylingOptions.showDataPoints : (chartType === 'line' || chartType === 'area' ? true : false),
                 pointSize: stylingOptions.pointSize ?? 8,
                 barWidth: stylingOptions.barWidth ?? 60,
                 barBorderRadius: stylingOptions.barBorderRadius ?? 4,
@@ -349,24 +349,150 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
         }
     }, [localOptions.yAxisRotation, onStylingChange]);
 
-    // Sync other picker values
+    // Set up event listener for Funnel Label Position picker
     useEffect(() => {
-        if (funnelLabelPositionPickerRef.current) {
+        const funnelLabelPositionPicker = funnelLabelPositionPickerRef.current;
+        if (funnelLabelPositionPicker) {
+            // Update value if it changed
+            if (funnelLabelPositionPicker.value !== localOptions.funnelLabelPosition) {
+                funnelLabelPositionPicker.value = localOptions.funnelLabelPosition;
+            }
+            
+            // Set up change event listener
+            const handleFunnelLabelPositionChangeEvent = (event) => {
+                const newValue = event.target.value;
+                console.log('🟡 [ChartStylingOptions] Funnel Label Position changed via event listener:', {
+                    newValue,
+                    eventValue: event.target.value,
+                    eventType: event.type
+                });
+                setLocalOptions(prev => {
+                    console.log('🟡 [ChartStylingOptions] Funnel Label Position - previous value:', prev.funnelLabelPosition);
+                    const newOptions = {
+                        ...prev,
+                        funnelLabelPosition: newValue
+                    };
+                    if (onStylingChange) {
+                        console.log('🟡 [ChartStylingOptions] Calling onStylingChange with funnelLabelPosition:', newValue);
+                        onStylingChange(newOptions);
+                    }
+                    return newOptions;
+                });
+            };
+            
+            funnelLabelPositionPicker.addEventListener('change', handleFunnelLabelPositionChangeEvent);
+            return () => {
+                funnelLabelPositionPicker.removeEventListener('change', handleFunnelLabelPositionChangeEvent);
+            };
+        }
+    }, [onStylingChange]);
+
+    // Sync funnel label position picker value
+    useEffect(() => {
+        if (funnelLabelPositionPickerRef.current && funnelLabelPositionPickerRef.current.value !== localOptions.funnelLabelPosition) {
             funnelLabelPositionPickerRef.current.value = localOptions.funnelLabelPosition;
         }
-        if (funnelSortPickerRef.current) {
+    }, [localOptions.funnelLabelPosition]);
+
+    // Set up event listener for Funnel Sort picker
+    useEffect(() => {
+        const funnelSortPicker = funnelSortPickerRef.current;
+        if (funnelSortPicker) {
+            // Update value if it changed
+            if (funnelSortPicker.value !== localOptions.funnelSort) {
+                funnelSortPicker.value = localOptions.funnelSort;
+            }
+            
+            // Set up change event listener
+            const handleFunnelSortChangeEvent = (event) => {
+                const newValue = event.target.value;
+                console.log('🟡 [ChartStylingOptions] Funnel Sort changed via event listener:', {
+                    newValue,
+                    eventValue: event.target.value,
+                    eventType: event.type
+                });
+                setLocalOptions(prev => {
+                    console.log('🟡 [ChartStylingOptions] Funnel Sort - previous value:', prev.funnelSort);
+                    const newOptions = {
+                        ...prev,
+                        funnelSort: newValue
+                    };
+                    if (onStylingChange) {
+                        console.log('🟡 [ChartStylingOptions] Calling onStylingChange with funnelSort:', newValue);
+                        onStylingChange(newOptions);
+                    }
+                    return newOptions;
+                });
+            };
+            
+            funnelSortPicker.addEventListener('change', handleFunnelSortChangeEvent);
+            return () => {
+                funnelSortPicker.removeEventListener('change', handleFunnelSortChangeEvent);
+            };
+        }
+    }, [onStylingChange]);
+
+    // Sync funnel sort picker value
+    useEffect(() => {
+        if (funnelSortPickerRef.current && funnelSortPickerRef.current.value !== localOptions.funnelSort) {
             funnelSortPickerRef.current.value = localOptions.funnelSort;
         }
-        if (scatterPointShapePickerRef.current) {
+    }, [localOptions.funnelSort]);
+
+    // Set up event listener for Scatter Point Shape picker
+    useEffect(() => {
+        const scatterPointShapePicker = scatterPointShapePickerRef.current;
+        if (scatterPointShapePicker) {
+            // Update value if it changed
+            if (scatterPointShapePicker.value !== localOptions.scatterPointShape) {
+                scatterPointShapePicker.value = localOptions.scatterPointShape;
+            }
+            
+            // Set up change event listener
+            const handleScatterPointShapeChangeEvent = (event) => {
+                const newValue = event.target.value;
+                console.log('🟡 [ChartStylingOptions] Scatter Point Shape changed via event listener:', {
+                    newValue,
+                    eventValue: event.target.value,
+                    eventType: event.type
+                });
+                setLocalOptions(prev => {
+                    console.log('🟡 [ChartStylingOptions] Scatter Point Shape - previous value:', prev.scatterPointShape);
+                    const newOptions = {
+                        ...prev,
+                        scatterPointShape: newValue
+                    };
+                    if (onStylingChange) {
+                        console.log('🟡 [ChartStylingOptions] Calling onStylingChange with scatterPointShape:', newValue);
+                        onStylingChange(newOptions);
+                    }
+                    return newOptions;
+                });
+            };
+            
+            scatterPointShapePicker.addEventListener('change', handleScatterPointShapeChangeEvent);
+            return () => {
+                scatterPointShapePicker.removeEventListener('change', handleScatterPointShapeChangeEvent);
+            };
+        }
+    }, [onStylingChange]);
+
+    // Sync scatter point shape picker value
+    useEffect(() => {
+        if (scatterPointShapePickerRef.current && scatterPointShapePickerRef.current.value !== localOptions.scatterPointShape) {
             scatterPointShapePickerRef.current.value = localOptions.scatterPointShape;
         }
+    }, [localOptions.scatterPointShape]);
+
+    // Sync other picker values
+    useEffect(() => {
         if (scatterSortPickerRef.current) {
             scatterSortPickerRef.current.value = localOptions.scatterSort;
         }
         if (scatterLabelPositionPickerRef.current) {
             scatterLabelPositionPickerRef.current.value = localOptions.scatterLabelPosition;
         }
-    }, [localOptions.funnelLabelPosition, localOptions.funnelSort, localOptions.scatterPointShape]);
+    }, [localOptions.scatterSort, localOptions.scatterLabelPosition]);
 
     const handleToggle = (key) => {
         const newOptions = {
@@ -775,32 +901,6 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                         </div>
                     </div>
 
-                    <div className="styling-section">
-                        <h3 className="styling-section-title">
-                            Bar Spacing
-                            <RefreshIcon onClick={() => handleReset('barSpacing', 0)} />
-                        </h3>
-                        <div className="slider-group">
-                            <input
-                                type="range"
-                                min={0}
-                                max={50}
-                                step={1}
-                                value={localOptions.barSpacing}
-                                onChange={handleSliderChange('barSpacing', 0, 50)}
-                                className="styling-slider"
-                            />
-                            <input
-                                type="number"
-                                value={localOptions.barSpacing.toString()}
-                                min={0}
-                                max={50}
-                                step={1}
-                                onChange={handleSliderChange('barSpacing', 0, 50)}
-                                className="styling-input"
-                            />
-                        </div>
-                    </div>
                 </>
             )}
 
@@ -973,7 +1073,6 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                             ref={funnelLabelPositionPickerRef}
                             label="Label Position"
                             value={localOptions.funnelLabelPosition}
-                            onInput={handlePickerChange('funnelLabelPosition')}
                             className="styling-picker"
                         >
                             {funnelLabelPositions.map((option) => (
@@ -993,7 +1092,6 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                             ref={funnelSortPickerRef}
                             label="Sort Order"
                             value={localOptions.funnelSort}
-                            onInput={handlePickerChange('funnelSort')}
                             className="styling-picker"
                         >
                             {funnelSortOptions.map((option) => (
@@ -1045,7 +1143,6 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                             ref={scatterPointShapePickerRef}
                             label="Point Shape"
                             value={localOptions.scatterPointShape}
-                            onInput={handlePickerChange('scatterPointShape')}
                             className="styling-picker"
                         >
                             {pointShapes.map((option) => (

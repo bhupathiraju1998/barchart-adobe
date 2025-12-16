@@ -175,6 +175,27 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
             }
         };
 
+        // Helper to get barCategoryGap value
+        const getBarCategoryGap = () => {
+            const spacing = stylingOptions?.barSpacing;
+            console.log('🟣 [ChartPreview] getBarCategoryGap called:', {
+                spacing,
+                stylingOptions_barSpacing: stylingOptions?.barSpacing,
+                isUndefined: spacing === undefined,
+                isNull: spacing === null,
+                type: typeof spacing
+            });
+            // Handle 0 explicitly - 0 is a valid value
+            if (spacing !== undefined && spacing !== null && spacing !== '') {
+                const result = `${spacing}%`;
+                console.log('🟣 [ChartPreview] barCategoryGap result:', result);
+                return result;
+            }
+            const defaultResult = '0%';
+            console.log('🟣 [ChartPreview] barCategoryGap default:', defaultResult);
+            return defaultResult;
+        };
+
         // Use imported data if available, otherwise use dummy data
         const commonData = importedData?.labels || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         const commonValues = importedData?.values || [120, 200, 150, 80, 70, 110, 130];
@@ -193,6 +214,7 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                     xAxis: {
                         type: 'category',
                         data: commonData,
+                        boundaryGap: true,
                         axisLabel: {
                             ...getLabelStyle({
                                 color: currentTheme.textColor
@@ -230,7 +252,8 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                             type: 'bar',
                             data: commonValues,
                             barWidth: `${stylingOptions?.barWidth ?? 60}%`,
-                            barCategoryGap: `${stylingOptions?.barSpacing ?? 0}%`,
+                            barCategoryGap: getBarCategoryGap(),
+                            barGap: '0%',
                             itemStyle: {
                                 color: currentTheme.colors[0],
                                 borderRadius: [
@@ -259,6 +282,7 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                     xAxis: {
                         type: 'category',
                         data: commonData,
+                        boundaryGap: true,
                         axisLabel: {
                             ...getLabelStyle({
                                 color: currentTheme.textColor
@@ -303,7 +327,22 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                                 width: stylingOptions?.lineWidth ?? 3
                             },
                             showSymbol: stylingOptions?.showDataPoints ?? false,
-                            symbolSize: stylingOptions?.showDataPoints ? (stylingOptions?.pointSize ?? 8) : 0
+                            symbolSize: stylingOptions?.showDataPoints ? (stylingOptions?.pointSize ?? 8) : 0,
+                            label: (() => {
+                                const valueStyle = getValueStyle({
+                                    show: true,
+                                    position: 'top',
+                                    color: currentTheme.textColor
+                                });
+                                // If show is false, return false to hide the label completely
+                                if (valueStyle.show === false) {
+                                    return { show: false };
+                                }
+                                return {
+                                    ...valueStyle,
+                                    formatter: '{c}'
+                                };
+                            })()
                         }
                     ]
                 };
@@ -338,10 +377,23 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                                 borderColor: currentTheme.backgroundColor,
                                 borderWidth: 2
                             },
-                            label: getLabelStyle({
-                                show: true,
-                                color: currentTheme.textColor
-                            }),
+                            label: {
+                                ...getLabelStyle({
+                                    show: true,
+                                    color: currentTheme.textColor
+                                }),
+                                formatter: (params) => {
+                                    let result = '';
+                                    if (stylingOptions?.labelVisible !== false) {
+                                        result += params.name;
+                                    }
+                                    if (stylingOptions?.valueVisible !== false) {
+                                        if (result) result += '\n';
+                                        result += params.percent + '%';
+                                    }
+                                    return result || '';
+                                }
+                            },
                             labelLine: {
                                 length: stylingOptions?.labelLineLength ?? 15,
                                 length2: Math.max(3, Math.floor((stylingOptions?.labelLineLength ?? 15) / 3)),
@@ -426,7 +478,22 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                                 width: stylingOptions?.lineWidth ?? 2
                             },
                             showSymbol: stylingOptions?.showDataPoints ?? false,
-                            symbolSize: stylingOptions?.showDataPoints ? (stylingOptions?.pointSize ?? 8) : 0
+                            symbolSize: stylingOptions?.showDataPoints ? (stylingOptions?.pointSize ?? 8) : 0,
+                            label: (() => {
+                                const valueStyle = getValueStyle({
+                                    show: true,
+                                    position: 'top',
+                                    color: currentTheme.textColor
+                                });
+                                // If show is false, return false to hide the label completely
+                                if (valueStyle.show === false) {
+                                    return { show: false };
+                                }
+                                return {
+                                    ...valueStyle,
+                                    formatter: '{c}'
+                                };
+                            })()
                         }
                     ]
                 };
@@ -507,13 +574,26 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                             itemStyle: {
                                 color: currentTheme.colors[0]
                             },
-                            label: getLabelStyle({
-                                show: stylingOptions?.scatterShowLabels ?? true,
-                                formatter: '{b}',
-                                position: stylingOptions?.scatterLabelPosition ?? 'top',
-                                fontSize: stylingOptions?.fontSize ? stylingOptions.fontSize - 2 : 10,
-                                color: currentTheme.textColor
-                            })
+                            label: {
+                                ...getLabelStyle({
+                                    show: stylingOptions?.scatterShowLabels ?? true,
+                                    formatter: '{b}',
+                                    position: stylingOptions?.scatterLabelPosition ?? 'top',
+                                    fontSize: stylingOptions?.fontSize ? stylingOptions.fontSize - 2 : 10,
+                                    color: currentTheme.textColor
+                                }),
+                                formatter: (params) => {
+                                    let result = '';
+                                    if (stylingOptions?.labelVisible !== false) {
+                                        result += params.name;
+                                    }
+                                    if (stylingOptions?.valueVisible !== false) {
+                                        if (result) result += '\n';
+                                        result += `(${params.value[0]}, ${params.value[1]})`;
+                                    }
+                                    return result || '';
+                                }
+                            }
                         }
                     ]
                 };
@@ -573,7 +653,8 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                             type: 'bar',
                             data: commonValues,
                             barWidth: `${stylingOptions?.barWidth ?? 60}%`,
-                            barCategoryGap: `${stylingOptions?.barSpacing ?? 0}%`,
+                            barCategoryGap: getBarCategoryGap(),
+                            barGap: '0%',
                             itemStyle: {
                                 color: currentTheme.colors[0],
                                 borderRadius: [
@@ -622,10 +703,23 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                                 borderColor: currentTheme.backgroundColor,
                                 borderWidth: 2
                             },
-                            label: getLabelStyle({
-                                show: true,
-                                color: currentTheme.textColor
-                            }),
+                            label: {
+                                ...getLabelStyle({
+                                    show: true,
+                                    color: currentTheme.textColor
+                                }),
+                                formatter: (params) => {
+                                    let result = '';
+                                    if (stylingOptions?.labelVisible !== false) {
+                                        result += params.name;
+                                    }
+                                    if (stylingOptions?.valueVisible !== false) {
+                                        if (result) result += '\n';
+                                        result += params.percent + '%';
+                                    }
+                                    return result || '';
+                                }
+                            },
                             labelLine: {
                                 length: stylingOptions?.labelLineLength ?? 15,
                                 length2: Math.max(3, Math.floor((stylingOptions?.labelLineLength ?? 15) / 3)),
@@ -682,11 +776,23 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                                 borderColor: currentTheme.backgroundColor,
                                 borderWidth: 2
                             },
-                            label: getLabelStyle({
-                                show: true,
-                                color: currentTheme.textColor,
-                                formatter: '{b}'
-                            }),
+                            label: {
+                                ...getLabelStyle({
+                                    show: true,
+                                    color: currentTheme.textColor
+                                }),
+                                formatter: (params) => {
+                                    let result = '';
+                                    if (stylingOptions?.labelVisible !== false) {
+                                        result += params.name;
+                                    }
+                                    if (stylingOptions?.valueVisible !== false) {
+                                        if (result) result += '\n';
+                                        result += params.percent + '%';
+                                    }
+                                    return result || '';
+                                }
+                            },
                             labelLine: {
                                 length: stylingOptions?.labelLineLength ?? 15,
                                 length2: Math.max(3, Math.floor((stylingOptions?.labelLineLength ?? 15) / 3)),
@@ -740,11 +846,24 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                             maxSize: '100%',
                             sort: stylingOptions?.funnelSort ?? 'descending',
                             gap: stylingOptions?.funnelGap ?? 2,
-                            label: getValueStyle({
-                                show: true,
-                                position: stylingOptions?.funnelLabelPosition ?? 'inside',
-                                color: currentTheme.textColor
-                            }),
+                            label: {
+                                ...getLabelStyle({
+                                    show: true,
+                                    position: stylingOptions?.funnelLabelPosition ?? 'inside',
+                                    color: currentTheme.textColor
+                                }),
+                                formatter: (params) => {
+                                    let result = '';
+                                    if (stylingOptions?.labelVisible !== false) {
+                                        result += params.name;
+                                    }
+                                    if (stylingOptions?.valueVisible !== false) {
+                                        if (result) result += '\n';
+                                        result += params.value;
+                                    }
+                                    return result || '';
+                                }
+                            },
                             labelLine: {
                                 length: 10,
                                 lineStyle: {
@@ -781,6 +900,7 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                     xAxis: {
                         type: 'category',
                         data: commonData,
+                        boundaryGap: true,
                         axisLabel: {
                             ...getLabelStyle({
                                 fontSize: stylingOptions?.fontSize ?? 12,
@@ -838,7 +958,8 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                             type: 'bar',
                             data: commonValues,
                             barWidth: `${stylingOptions?.barWidth ?? 60}%`,
-                            barCategoryGap: `${stylingOptions?.barSpacing ?? 0}%`,
+                            barCategoryGap: getBarCategoryGap(),
+                            barGap: '0%',
                             itemStyle: {
                                 color: currentTheme.colors[0],
                                 borderRadius: [
@@ -881,12 +1002,19 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
 
     // Log the final chart option to verify fontFamily and fontStyle are included
     React.useEffect(() => {
-        if (chartOption) {
+        if (chartOption && chartOption.series) {
+            const firstSeries = chartOption.series[0];
             console.log('🟣 [ChartPreview] Final chart option computed:', {
                 hasXAxis: !!chartOption.xAxis,
                 hasYAxis: !!chartOption.yAxis,
                 hasLegend: !!chartOption.legend,
                 hasSeries: !!chartOption.series,
+                barSpacing: stylingOptions?.barSpacing,
+                firstSeriesType: firstSeries?.type,
+                barCategoryGap: firstSeries?.barCategoryGap,
+                barGap: firstSeries?.barGap,
+                barWidth: firstSeries?.barWidth,
+                fullFirstSeries: firstSeries,
                 xAxisLabelFontFamily: chartOption.xAxis?.axisLabel?.fontFamily,
                 xAxisLabelFontStyle: chartOption.xAxis?.axisLabel?.fontStyle,
                 yAxisLabelFontFamily: chartOption.yAxis?.axisLabel?.fontFamily,
@@ -898,7 +1026,8 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                 currentStylingOptions: {
                     fontFamily: stylingOptions?.fontFamily,
                     fontStyle: stylingOptions?.fontStyle,
-                    fontSize: stylingOptions?.fontSize
+                    fontSize: stylingOptions?.fontSize,
+                    barSpacing: stylingOptions?.barSpacing
                 }
             });
         }

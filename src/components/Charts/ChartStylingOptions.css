@@ -103,9 +103,18 @@
     padding-right: 16px;
 }
 
+.styling-picker {
+    --spectrum-menu-item-padding-left: 20px;
+    --spectrum-menu-item-padding-right: 16px;
+    --spectrum-menu-item-padding-top: 12px;
+    --spectrum-menu-item-padding-bottom: 12px;
+}
+
 .styling-picker sp-menu-item {
-    padding-left: 16px !important;
+    padding-left: 20px !important;
     padding-right: 16px !important;
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
 }
 
 .styling-picker sp-menu {

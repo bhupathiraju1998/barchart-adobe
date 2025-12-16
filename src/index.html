@@ -7,6 +7,13 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Get Started</title>
         <script type="module" src="add-on-console-override.js"></script>
+        <script type="text/javascript">
+            (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "uhvu8pttji");
+        </script>
         <style>
             * {
                 margin: 0;
@@ -23,6 +30,19 @@
             #root {
                 height: 100%;
                 width: 100%;
+            }
+
+            /* Global styles for Spectrum Web Components menu items */
+            sp-menu-item {
+                --spectrum-menu-item-padding-left: 20px !important;
+                --spectrum-menu-item-padding-right: 16px !important;
+                --spectrum-menu-item-padding-top: 12px !important;
+                --spectrum-menu-item-padding-bottom: 12px !important;
+            }
+
+            /* Use :host selector for shadow DOM penetration */
+            sp-menu-item:host {
+                --spectrum-menu-item-padding-left: 20px !important;
             }
         </style>
     </head>

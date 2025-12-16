@@ -33,10 +33,20 @@
     padding-right: 16px;
 }
 
+.pickers-row .chart-picker,
+.pickers-row .theme-picker {
+    --spectrum-menu-item-padding-left: 20px;
+    --spectrum-menu-item-padding-right: 16px;
+    --spectrum-menu-item-padding-top: 12px;
+    --spectrum-menu-item-padding-bottom: 12px;
+}
+
 .pickers-row .chart-picker sp-menu-item,
 .pickers-row .theme-picker sp-menu-item {
-    padding-left: 16px !important;
+    padding-left: 20px !important;
     padding-right: 16px !important;
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
 }
 
 .pickers-row .chart-picker sp-menu,
