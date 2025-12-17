@@ -7,7 +7,7 @@ import UploadModal from '../Charts/UploadModal';
 import ChartStylingOptions from '../Charts/ChartStylingOptions';
 import './ChartGenerator.css';
 
-const ChartGenerator = ({ sandboxProxy }) => {
+const ChartGenerator = ({ sandboxProxy, isPro = false }) => {
     const [selectedChart, setSelectedChart] = useState('bar');
     const [selectedTheme, setSelectedTheme] = useState('default');
     const [isAdding, setIsAdding] = useState(false);
