@@ -543,3 +543,61 @@ sp-menu-item::part(content),
 sp-menu-item::part(text) {
     padding-left: 20px !important;
 }
+
+/* Promotion Banner */
+.promotion-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    margin: 6px 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    flex-shrink: 0;
+}
+
+.promotion-banner--bottom {
+    order: 10;
+}
+
+.promotion-banner--top {
+    margin-top: 6px;
+}
+
+.promotion-banner__text {
+    flex: 1;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.1px;
+    line-height: 1.4;
+}
+
+.promotion-banner__text--marquee {
+    overflow: visible;
+    white-space: normal;
+}
+
+.promotion-banner__button {
+    border: 1px solid currentColor;
+    background: transparent;
+    color: inherit;
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.promotion-banner__button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.promotion-banner__button:not(:disabled):hover {
+    background: rgba(255, 255, 255, 0.15);
+}

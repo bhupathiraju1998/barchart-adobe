@@ -7,9 +7,10 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-more.js';
 // To learn more about using "swc-react" visit:
 // https://opensource.adobe.com/spectrum-web-components/using-swc-react/
 import { Theme } from "@swc-react/theme";
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState, Suspense, useMemo, useCallback } from "react";
 import ChartGenerator from "./ChartGenerator/ChartGenerator";
 import Confetti from "./Confetti/Confetti";
+import WhatsAppSupportWidget from "./WhatsAppSupportWidget/WhatsAppSupportWidget";
 import "./App.css";
 
 const App = ({ addOnUISdk, sandboxProxy }) => {
@@ -22,6 +23,9 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
     const [flagsData, setFlagsData] = useState(null);
     const [showConfetti, setShowConfetti] = useState(false);
     const [confettiKey, setConfettiKey] = useState(0);
+    const [adobeUserType, setAdobeUserType] = useState("free");
+    const [emailModalEnabled, setEmailModalEnabled] = useState(false);
+    const [hasSubmittedEmail, setHasSubmittedEmail] = useState(false);
 
     // Inject styles for Spectrum menu items to handle shadow DOM
     useEffect(() => {
@@ -87,17 +91,341 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
     useEffect(() => {
         const fetchConfig = async () => {
             try {
-                const response = await fetch('https://configs.swiftools.com/flags/projects/adobe-express/charts-pro/flags.json');
-                if (response.ok) {
-                    const data = await response.json();
-                    setFlagsData(data);
+                // Check if online
+                if (!navigator.onLine) {
+                    setEmailModalEnabled(false);
+                    // Still try to load project config if cached
+                    try {
+                        const response = await fetch('https://configs.swiftools.com/flags/projects/adobe-express/charts-pro/flags.json');
+                        if (response.ok) {
+                            const data = await response.json();
+                            setFlagsData(data);
+                        }
+                    } catch (e) {
+                        // Silent fail for offline
+                    }
+                    return;
+                }
+
+                // Fetch both configuration URLs with timeout
+                const fetchWithTimeout = (url, timeout = 5000) => {
+                    return Promise.race([
+                        fetch(url),
+                        new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('Fetch timeout')), timeout)
+                        )
+                    ]);
+                };
+
+                const [commonResponse, projectResponse] = await Promise.all([
+                    fetchWithTimeout('https://configs.swiftools.com/flags/shared/common-flags.json').catch(() => null),
+                    fetchWithTimeout('https://configs.swiftools.com/flags/projects/adobe-express/charts-pro/flags.json').catch(() => null)
+                ]);
+
+                // If both fail, disable modal
+                if (!commonResponse || !projectResponse || !commonResponse.ok || !projectResponse.ok) {
+                    setEmailModalEnabled(false);
+                    // Still try to set flagsData from project config if available
+                    if (projectResponse?.ok) {
+                        try {
+                            const projectText = await projectResponse.text();
+                            const projectData = JSON.parse(projectText);
+                            setFlagsData(projectData);
+                        } catch (e) {
+                            console.error('Failed to parse project config:', e);
+                        }
+                    }
+                    return;
+                }
+
+                // Get text first to handle JSON parse errors
+                const [commonText, projectText] = await Promise.all([
+                    commonResponse.text(),
+                    projectResponse.text()
+                ]);
+
+                try {
+                    const commonConfig = JSON.parse(commonText);
+                    const projectConfig = JSON.parse(projectText);
+
+                    // Check both isEnabled flags
+                    const commonEnabled = commonConfig.flags?.adobe_express_integration?.free_access_popup?.isEnabled;
+                    const projectEnabled = projectConfig.flags?.free_access_popup?.isEnabled;
+
+                    // Both must be true for email modal
+                    const modalEnabled = commonEnabled === true && projectEnabled === true;
+                    setEmailModalEnabled(modalEnabled);
+
+                    // Set flagsData from project config
+                    setFlagsData(projectConfig);
+                } catch (parseError) {
+                    console.error('JSON Parse Error in fetchConfig:', parseError.message);
+                    setEmailModalEnabled(false);
+                    // Still try to set flagsData if project config parsed successfully
+                    try {
+                        const projectConfig = JSON.parse(projectText);
+                        setFlagsData(projectConfig);
+                    } catch (e) {
+                        // Both failed, leave flagsData as is
+                    }
                 }
             } catch (error) {
-                console.error('Failed to fetch config:', error);
+                console.error('Configuration fetch failed:', error);
+                setEmailModalEnabled(false);
             }
         };
         fetchConfig();
     }, []);
+
+    // Check if user has already submitted email (from storage)
+    useEffect(() => {
+        const checkEmailSubmission = async () => {
+            if (!addOnUISdk?.instance?.clientStorage) {
+                return;
+            }
+            try {
+                const { clientStorage } = addOnUISdk.instance;
+                const submittedEmail = await clientStorage.getItem('emailSubmitted');
+                if (submittedEmail === 'true') {
+                    setHasSubmittedEmail(true);
+                }
+            } catch (error) {
+                console.error('Error checking email submission:', error);
+            }
+        };
+        checkEmailSubmission();
+    }, [addOnUISdk]);
+
+    // Handler for when email is successfully submitted
+    const handleEmailSubmitted = useCallback(async () => {
+        setHasSubmittedEmail(true);
+        // Store in clientStorage
+        if (addOnUISdk?.instance?.clientStorage) {
+            try {
+                await addOnUISdk.instance.clientStorage.setItem('emailSubmitted', 'true');
+            } catch (error) {
+                console.error('Error storing email submission:', error);
+            }
+        }
+    }, [addOnUISdk]);
+
+    // Resolve Adobe account type
+    useEffect(() => {
+        let isMounted = true;
+        const resolveAdobeAccountType = async () => {
+            if (!addOnUISdk?.app) {
+                return;
+            }
+            try {
+                let profile = null;
+                if (typeof addOnUISdk.app.getUserProfile === "function") {
+                    profile = await addOnUISdk.app.getUserProfile();
+                } else if (addOnUISdk.app.currentUserProfile) {
+                    profile = await addOnUISdk.app.currentUserProfile;
+                }
+                let normalizedType = "free";
+                const extractedType =
+                    profile?.planType ||
+                    profile?.accountType ||
+                    profile?.type ||
+                    profile?.userType ||
+                    profile?.tier;
+                if (typeof extractedType === "string" && extractedType.length > 0) {
+                    normalizedType = extractedType.toLowerCase().includes("premium") ? "premium" : "free";
+                } else if (profile?.isPaid === true) {
+                    normalizedType = "premium";
+                }
+                if (isMounted) {
+                    setAdobeUserType(normalizedType);
+                }
+            } catch (error) {
+                console.warn("Unable to resolve Adobe account type:", error);
+                if (isMounted) {
+                    setAdobeUserType("free");
+                }
+            }
+        };
+
+        resolveAdobeAccountType();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [addOnUISdk]);
+
+    // Promotion config memo
+    const promotionConfig = useMemo(() => {
+        if (!flagsData?.["ongoing-promotion"]?.isEnabled) {
+            return null;
+        }
+
+        const promotion = flagsData["ongoing-promotion"];
+        const banner = promotion?.promotion_details?.landing_page_banner;
+        if (!banner?.isEnabled) {
+            return null;
+        }
+
+        const normalizedAdobeUserType = (adobeUserType || "free").toLowerCase();
+        const adobeUserFilters = Array.isArray(promotion.enabledForAdobeUserTypes)
+            ? promotion.enabledForAdobeUserTypes.map((type) => type?.toLowerCase())
+            : null;
+
+        if (
+            adobeUserFilters &&
+            adobeUserFilters.length > 0 &&
+            !adobeUserFilters.includes(normalizedAdobeUserType)
+        ) {
+            return null;
+        }
+
+        if (promotion.enabledForPaidUsers === false && isPro) {
+            return null;
+        }
+
+        return {
+            banner,
+            buttonAction: banner["button-action"],
+            templates: promotion.templates || {},
+        };
+    }, [flagsData, adobeUserType, isPro]);
+
+    // Handle promotion popup
+    const handlePromotionPopup = useCallback(
+        async (templateKey) => {
+            if (!templateKey) {
+                console.warn("Promotion popup missing template key");
+                return;
+            }
+            if (!addOnUISdk?.app?.showModalDialog) {
+                console.warn("showModalDialog API unavailable");
+                return;
+            }
+            const dialogUrl = `promotion-dialog.html?template=${encodeURIComponent(templateKey)}`;
+            
+            // Get title from template content header text
+            const template = flagsData?.["ongoing-promotion"]?.templates?.[templateKey];
+            const dialogTitle = template?.content?.header?.title || "Special Offer";
+            const dialogHeight = template?.content?.specs?.height || 600;
+            const dialogWidth = template?.content?.specs?.width || 960;
+            
+            try {
+                await addOnUISdk.app.showModalDialog({
+                    variant: "custom",
+                    title: dialogTitle,
+                    src: dialogUrl,
+                    size: { width: dialogWidth, height: dialogHeight },
+                });
+            } catch (error) {
+                console.error("Error launching promotion dialog:", error);
+            }
+        },
+        [addOnUISdk, flagsData]
+    );
+
+    // Handle promotion action
+    const handlePromotionAction = useCallback(
+        async (action) => {
+            if (!action) {
+                return;
+            }
+            const actionType = action.type;
+            if (actionType === "url") {
+                if (action.url) {
+                    window.open(action.url, "_blank", "noopener,noreferrer");
+                }
+                return;
+            }
+            if (actionType === "inScreenOpenUrl") {
+                const inScreenOpenUrlConfig = action.inScreenOpenUrl;
+                const targetUrl = 
+                    (typeof inScreenOpenUrlConfig === "object" && inScreenOpenUrlConfig?.url) 
+                        ? inScreenOpenUrlConfig.url 
+                        : (typeof inScreenOpenUrlConfig === "string" 
+                            ? inScreenOpenUrlConfig 
+                            : action.url);
+                
+                if (targetUrl) {
+                    const width = (typeof inScreenOpenUrlConfig === "object" && inScreenOpenUrlConfig?.width) 
+                        ? inScreenOpenUrlConfig.width 
+                        : 1200;
+                    const height = (typeof inScreenOpenUrlConfig === "object" && inScreenOpenUrlConfig?.height) 
+                        ? inScreenOpenUrlConfig.height 
+                        : 800;
+                    
+                    const popupFeatures = `width=${width},height=${height},scrollbars=yes,resizable=yes`;
+                    const popup = window.open(targetUrl, "offerPopup", popupFeatures);
+                    
+                    if (popup) {
+                        popup.focus();
+                    } else {
+                        console.warn("Popup blocked, opening in new tab instead");
+                        window.open(targetUrl, "_blank", "noopener,noreferrer");
+                    }
+                }
+                return;
+            }
+            if (actionType === "inScreenPopup") {
+                await handlePromotionPopup(action?.inScreenPopup?.currentTemplate);
+                return;
+            }
+        },
+        [handlePromotionPopup]
+    );
+
+    // On-load promotion popup (delay + show-once logic)
+    useEffect(() => {
+        // Early return if conditions not met
+        if (
+            !flagsData?.["ongoing-promotion"]?.onload_promotion_popup?.isEnabled
+        ) {
+            return;
+        }
+
+        const popupConfig = flagsData["ongoing-promotion"].onload_promotion_popup;
+        const templateKey = popupConfig.template || promotionConfig?.buttonAction?.inScreenPopup?.currentTemplate;
+        
+        if (!templateKey) {
+            console.warn("Promotion popup template key not found");
+            return;
+        }
+        
+        const delayMs = Math.max(0, (popupConfig.on_load_delay_seconds || 0) * 1000);
+        const showOnlyOnce = popupConfig.show_only_once_per_user === true;
+
+        // Check if we should show the popup
+        const checkAndShowPopup = async () => {
+            if (showOnlyOnce && addOnUISdk?.instance?.clientStorage) {
+                try {
+                    const storageKey = `promotion_popup_shown_${templateKey}`;
+                    const alreadyShown = await addOnUISdk.instance.clientStorage.getItem(storageKey);
+                    if (alreadyShown === "true") {
+                        return;
+                    }
+                } catch (error) {
+                    console.warn("Error checking promotion popup status:", error);
+                }
+            }
+
+            handlePromotionPopup(templateKey);
+
+            if (showOnlyOnce && addOnUISdk?.instance?.clientStorage) {
+                try {
+                    const storageKey = `promotion_popup_shown_${templateKey}`;
+                    await addOnUISdk.instance.clientStorage.setItem(storageKey, "true");
+                } catch (error) {
+                    console.warn("Error saving promotion popup status:", error);
+                }
+            }
+        };
+
+        const timer = setTimeout(() => {
+            checkAndShowPopup();
+        }, delayMs);
+
+        return () => {
+            clearTimeout(timer);
+        };
+    }, [flagsData, promotionConfig, handlePromotionPopup, addOnUISdk]);
 
     const handleSettingsClick = () => {
         setPopoverOpen((open) => !open);
@@ -215,8 +543,43 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
 
                 {/* Main Content Area */}
                 <div className="app-main-content">
+                    {/* Promotion Banner */}
+                    {promotionConfig && (
+                        <div
+                            className={`promotion-banner promotion-banner--${promotionConfig.banner.banner_position || "top"}`}
+                            style={{
+                                backgroundColor: promotionConfig.banner.background_color,
+                                color: promotionConfig.banner.text_color,
+                            }}
+                        >
+                            <div
+                                className={`promotion-banner__text ${
+                                    promotionConfig.banner.marquee_enabled ? "promotion-banner__text--marquee" : ""
+                                }`}
+                            >
+                                <span>{promotionConfig.banner.title}</span>
+                            </div>
+                            <button
+                                className="promotion-banner__button"
+                                disabled={!promotionConfig.buttonAction}
+                                onClick={() => handlePromotionAction(promotionConfig.buttonAction)}
+                                style={{ color: promotionConfig.banner.text_color }}
+                            >
+                                {promotionConfig.banner.button_text || "Learn More"}
+                            </button>
+                        </div>
+                    )}
+
                     <div className="app-view-content">
-                        <ChartGenerator sandboxProxy={sandboxProxy} isPro={isPro} />
+                        <ChartGenerator 
+                            sandboxProxy={sandboxProxy} 
+                            isPro={isPro} 
+                            addOnUISdk={addOnUISdk}
+                            onOpenUpgradeDrawer={() => setDrawerOpen(true)}
+                            emailModalEnabled={emailModalEnabled}
+                            hasSubmittedEmail={hasSubmittedEmail}
+                            onEmailSubmitted={handleEmailSubmitted}
+                        />
                     </div>
                 </div>
 
@@ -436,7 +799,7 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
 
                                 {/* Pro Users Message */}
                                 <div className="drawer-pro-message">
-                                    <p>Pro users get unlimited generation</p>
+                                    <p>Pro users get access to all charts and themes.</p>
                                 </div>
                             </div>
                         </div>
@@ -449,6 +812,9 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                         <Confetti key={confettiKey} duration={8000} />
                     </Suspense>
                 )}
+
+                {/* WhatsApp Support Widget - appears on all pages when enabled */}
+                <WhatsAppSupportWidget flagsData={flagsData} />
             </div>
         </Theme>
     );

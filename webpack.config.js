@@ -9,7 +9,8 @@ module.exports = {
     devtool: isEnvProduction ? "source-map" : "eval-source-map",
     entry: {
         index: "./src/index.jsx",
-        code: "./src/sandbox/code.js"
+        code: "./src/sandbox/code.js",
+        promotionDialog: "./src/dialogs/promotionDialog.jsx"
     },
     experiments: {
         outputModule: true
@@ -30,7 +31,13 @@ module.exports = {
         new HtmlWebpackPlugin({
             template: "src/index.html",
             scriptLoading: "module",
-            excludeChunks: ["code"]
+            excludeChunks: ["code", "promotionDialog"]
+        }),
+        new HtmlWebpackPlugin({
+            template: "src/dialogs/promotion-dialog.html",
+            filename: "promotion-dialog.html",
+            scriptLoading: "module",
+            chunks: ["promotionDialog"]
         }),
         new CopyWebpackPlugin({
             patterns: [{ from: "src/*.json", to: "[name][ext]" }]

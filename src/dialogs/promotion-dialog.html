@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Promotion</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+      }
+      #promotion-dialog-root {
+        height: 100%;
+      }
+      .promotion-dialog-loader {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        font-family: "Inter", sans-serif;
+        color: #555;
+      }
+      .promotion-dialog-spinner {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-top-color: #0265ff;
+        animation: promotion-spin 0.9s linear infinite;
+      }
+      @keyframes promotion-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body style="margin:0;padding:0;background:transparent;">
+    <div id="promotion-dialog-root"></div>
+  </body>
+</html>
+
+

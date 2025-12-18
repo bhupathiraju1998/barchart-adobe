@@ -122,6 +122,12 @@
     box-shadow: none !important;
 }
 
+.add-chart-button.upgrade-button {
+    font-size: 12px !important;
+    padding: 12px !important;
+}
+
+
 .import-csv-button {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
     box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3) !important;

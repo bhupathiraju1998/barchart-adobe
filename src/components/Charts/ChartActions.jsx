@@ -1,25 +1,43 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import './Charts.css';
 
-const ChartActions = React.memo(({ sandboxProxy, isAdding, onAddToPage, onImportCSV }) => {
+const ChartActions = React.memo(({ sandboxProxy, isAdding, onAddToPage, onImportCSV, isPro, isProOnlySelected, onOpenUpgradeDrawer }) => {
     // Log when ChartActions component renders
     useEffect(() => {
         console.log('🟠 [ChartActions] Component RENDERED/MOUNTED', {
             sandboxProxy: !!sandboxProxy,
             isAdding,
             onAddToPage: !!onAddToPage,
-            onImportCSV: !!onImportCSV
+            onImportCSV: !!onImportCSV,
+            isPro,
+            isProOnlySelected
         });
     });
+
+    // Determine button text and action
+    const buttonConfig = useMemo(() => {
+        if (!isPro && isProOnlySelected) {
+            return {
+                text: 'UPGRADE NOW',
+                onClick: onOpenUpgradeDrawer,
+                isUpgrade: true
+            };
+        }
+        return {
+            text: isAdding ? 'Adding...' : 'Add to Page',
+            onClick: onAddToPage,
+            isUpgrade: false
+        };
+    }, [isPro, isProOnlySelected, isAdding, onAddToPage, onOpenUpgradeDrawer]);
 
     return (
         <div className="chart-actions">
             <button
-                className="add-chart-button"
-                onClick={onAddToPage}
+                className={`add-chart-button ${buttonConfig.isUpgrade ? 'upgrade-button' : ''}`}
+                onClick={buttonConfig.onClick}
                 disabled={!sandboxProxy || isAdding}
             >
-                {isAdding ? 'Adding...' : 'Add to Page'}
+                {buttonConfig.text}
             </button>
             <button
                 className="import-csv-button"

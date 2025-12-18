@@ -44,3 +44,5 @@ const Confetti = ({ duration = 8000 }) => {
 
 export default Confetti;
 
+
+

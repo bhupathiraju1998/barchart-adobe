@@ -1,17 +1,32 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import ChartPicker from '../Charts/ChartPicker';
 import ChartPreview from '../Charts/ChartPreview';
 import ChartActions from '../Charts/ChartActions';
 import ThemePicker from '../Themes/ThemePicker';
 import UploadModal from '../Charts/UploadModal';
+import LoginSignupModal from '../Charts/LoginSignupModal';
 import ChartStylingOptions from '../Charts/ChartStylingOptions';
+import { revalidateSubscription } from '../../services/subscriptionValidationService';
 import './ChartGenerator.css';
 
-const ChartGenerator = ({ sandboxProxy, isPro = false }) => {
+// Define pro-only charts and themes
+const PRO_ONLY_CHARTS = ['funnel', 'mixed', 'pie-doughnut', 'pie-nightingale', 'scatter'];
+const PRO_ONLY_THEMES = ['vintage', 'westeros', 'essos', 'wonderland', 'walden', 'chalk', 'infographic'];
+
+const ChartGenerator = ({ 
+    sandboxProxy, 
+    isPro = false, 
+    addOnUISdk, 
+    onOpenUpgradeDrawer,
+    emailModalEnabled = false,
+    hasSubmittedEmail = false,
+    onEmailSubmitted
+}) => {
     const [selectedChart, setSelectedChart] = useState('bar');
     const [selectedTheme, setSelectedTheme] = useState('default');
     const [isAdding, setIsAdding] = useState(false);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [isLoginSignupModalOpen, setIsLoginSignupModalOpen] = useState(false);
     const [importedData, setImportedData] = useState(null);
     const [stylingOptions, setStylingOptions] = useState({
         // Common options
@@ -81,6 +96,64 @@ const ChartGenerator = ({ sandboxProxy, isPro = false }) => {
         setSelectedTheme(theme);
     }, []);
 
+    // Validate subscription before adding chart (for Pro users)
+    const validateSubscriptionBeforeAdding = useCallback(async () => {
+        if (isPro && addOnUISdk) {
+            try {
+                const { clientStorage } = addOnUISdk.instance;
+                const storedKey = await clientStorage.getItem("licenseKey");
+
+                if (storedKey) {
+                    const validation = await revalidateSubscription(storedKey);
+
+                    if (!validation.success || !validation.valid) {
+                        if (validation.shouldRevoke) {
+                            await clientStorage.removeItem("licenseKey");
+                            await clientStorage.removeItem("licenseData");
+
+                            // Reload page to sync state with parent component
+                            alert(
+                                "Your subscription has expired or is no longer valid. Please renew your subscription to continue adding charts."
+                            );
+                            window.location.reload();
+                            return false;
+                        }
+                        return false;
+                    }
+
+                    // Update cached license data
+                    const data = validation.licenseData;
+                    const licenseDataToStore = {
+                        status: data.status,
+                        renewal_period_end: data.renewal_period_end,
+                        renewal_period_start: data.renewal_period_start,
+                        cancel_at_period_end: data.cancel_at_period_end,
+                        subscription_type: validation.type,
+                        expiresAt: validation.expiresAt
+                            ? validation.expiresAt.toISOString()
+                            : null,
+                        lastValidated: new Date().toISOString(),
+                    };
+
+                    await clientStorage.setItem(
+                        "licenseData",
+                        JSON.stringify(licenseDataToStore)
+                    );
+                    return true;
+                }
+            } catch (error) {
+                console.error(
+                    "Error validating subscription before adding chart:",
+                    error
+                );
+                // Allow adding chart if offline (graceful degradation)
+                return true;
+            }
+        }
+        return true; // Non-Pro users or no validation needed
+    }, [isPro, addOnUISdk]);
+
+    // Show login/signup popup when Add to Page is clicked
     const handleAddToPage = useCallback(async () => {
         if (!sandboxProxy) {
             alert("Please wait for the add-on to initialize.");
@@ -92,6 +165,33 @@ const ChartGenerator = ({ sandboxProxy, isPro = false }) => {
             return;
         }
 
+        // For Pro users: validate subscription before proceeding
+        if (isPro) {
+            const isValid = await validateSubscriptionBeforeAdding();
+            if (!isValid) {
+                // Validation failed - subscription expired
+                // State will be updated by validation function (page reload)
+                return;
+            }
+        }
+
+        // Check all three conditions for email modal (same as bulk addons)
+        const shouldShowModal = 
+            emailModalEnabled === true &&  // Both flags are true
+            isPro === false &&              // Not a Pro user
+            hasSubmittedEmail === false;    // Has not submitted email yet
+
+        if (shouldShowModal) {
+            // Show the login/signup modal
+            setIsLoginSignupModalOpen(true);
+        } else {
+            // Skip modal and directly add chart to page
+            await addChartToPage();
+        }
+    }, [sandboxProxy, emailModalEnabled, isPro, hasSubmittedEmail, addChartToPage, validateSubscriptionBeforeAdding]);
+
+    // Actual function to add chart to page
+    const addChartToPage = useCallback(async () => {
         setIsAdding(true);
         try {
             console.log("🟢 [Chart] Starting chart export and insertion...");
@@ -159,6 +259,44 @@ const ChartGenerator = ({ sandboxProxy, isPro = false }) => {
         }
     }, [sandboxProxy, stylingOptions]);
 
+    // Handle API call after form submission
+    const handleLoginSignupSubmit = useCallback(async (payload) => {
+        try {
+            console.log("🟢 [ChartGenerator] Login/Signup Payload:", payload);
+            console.log("📦 [ChartGenerator] Payload Details:", {
+                adobeId: payload.adobeId,
+                adobeAccountType: payload.adobeAccountType,
+                productName: payload.productName,
+                email: payload.email
+            });
+            
+            // TODO: Replace console.log with actual API call when ready
+            // const API_URL = 'https://api.swiftools.com/user/login-signup';
+            // const response = await fetch(API_URL, {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify(payload),
+            // });
+            // const data = await response.json();
+
+            // Mark email as submitted
+            if (onEmailSubmitted) {
+                onEmailSubmitted();
+            }
+
+            // Close the modal
+            setIsLoginSignupModalOpen(false);
+
+            // Proceed with adding chart to page
+            await addChartToPage();
+        } catch (error) {
+            console.error("❌ [ChartGenerator] Error:", error);
+            throw error; // Re-throw to let the modal handle the error display
+        }
+    }, [addChartToPage, onEmailSubmitted]);
+
     const handleImportCSV = useCallback(() => {
         if (!sandboxProxy) {
             alert("Please wait for the add-on to initialize.");
@@ -179,6 +317,10 @@ const ChartGenerator = ({ sandboxProxy, isPro = false }) => {
         setIsUploadModalOpen(false);
     }, []);
 
+    const handleCloseLoginSignupModal = useCallback(() => {
+        setIsLoginSignupModalOpen(false);
+    }, []);
+
     const handleStylingChange = useCallback((newOptions) => {
         console.log('🟢 [ChartGenerator] Styling options changed:', {
             newOptions,
@@ -190,6 +332,13 @@ const ChartGenerator = ({ sandboxProxy, isPro = false }) => {
         });
         setStylingOptions(newOptions);
     }, [stylingOptions]);
+
+    // Check if selected chart or theme is pro-only
+    const isProOnlySelected = useMemo(() => {
+        const isProChart = PRO_ONLY_CHARTS.includes(selectedChart);
+        const isProTheme = PRO_ONLY_THEMES.includes(selectedTheme);
+        return isProChart || isProTheme;
+    }, [selectedChart, selectedTheme]);
 
     return (
         <div className="chart-generator-container">
@@ -215,6 +364,9 @@ const ChartGenerator = ({ sandboxProxy, isPro = false }) => {
                 isAdding={isAdding}
                 onAddToPage={handleAddToPage}
                 onImportCSV={handleImportCSV}
+                isPro={isPro}
+                isProOnlySelected={isProOnlySelected}
+                onOpenUpgradeDrawer={onOpenUpgradeDrawer}
             />
             <ChartStylingOptions 
                 chartType={selectedChart}
@@ -225,6 +377,12 @@ const ChartGenerator = ({ sandboxProxy, isPro = false }) => {
                 isOpen={isUploadModalOpen}
                 onClose={handleCloseModal}
                 onDataUploaded={handleDataUploaded}
+            />
+            <LoginSignupModal 
+                isOpen={isLoginSignupModalOpen}
+                onClose={handleCloseLoginSignupModal}
+                onSubmit={handleLoginSignupSubmit}
+                addOnUISdk={addOnUISdk}
             />
         </div>
     );

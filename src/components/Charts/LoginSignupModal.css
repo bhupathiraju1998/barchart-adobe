@@ -1,0 +1,166 @@
+.login-signup-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.login-signup-modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.login-signup-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.login-signup-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+  text-align: center;
+  flex: 1;
+}
+
+.login-signup-modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+  line-height: 1;
+  margin-left: auto;
+}
+
+.login-signup-modal-close:hover {
+  background: #f3f4f6;
+}
+
+.login-signup-modal-body {
+  padding: 30px 20px;
+}
+
+.login-signup-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.login-signup-input-group {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.login-signup-email-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.login-signup-email-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.login-signup-email-input:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.login-signup-error {
+  color: #ef4444;
+  font-size: 14px;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.login-signup-submit-button {
+  width: 100%;
+  padding: 12px 24px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-bottom: 20px;
+}
+
+.login-signup-submit-button:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.login-signup-submit-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.login-signup-link-container {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.login-signup-link {
+  color: #3b82f6;
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s ease;
+}
+
+.login-signup-link:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+

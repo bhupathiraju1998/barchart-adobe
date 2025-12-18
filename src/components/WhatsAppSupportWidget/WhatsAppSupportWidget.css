@@ -1,0 +1,240 @@
+/* WhatsApp Support Widget - Fixed bottom-right position */
+.whatsapp-support-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  z-index: 3000; /* High z-index to stay above footer and other content */
+  animation: whatsapp-widget-fade-in 0.4s ease-out;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* Hidden state - hide the main widget */
+.whatsapp-support-widget.whatsapp-widget-hidden .whatsapp-widget-content {
+  transform: translateX(calc(100% + 20px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.whatsapp-widget-content {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  cursor: pointer;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  flex-direction: row-reverse; /* Icon first, banner slides out to left */
+}
+
+/* Slider toggle button - small circular close button */
+.whatsapp-slider-toggle {
+  position: absolute;
+  top: -8px;
+  right: -4px;
+  width: 22px;
+  height: 22px;
+  background: #718096;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  padding: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.whatsapp-slider-toggle:hover {
+  background: #4a5568;
+  transform: scale(1.1);
+}
+
+/* When widget is hidden, show toggle as edge tab on right side */
+.whatsapp-slider-toggle.toggle-hidden-state {
+  position: fixed;
+  top: 90%;
+  bottom: auto;
+  right: -3px;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 30px;
+  background: #25D366;
+  border: 2px solid #3a8d59;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  box-shadow: -2px 2px 8px rgba(37, 211, 102, 0.3);
+}
+
+.whatsapp-slider-toggle.toggle-hidden-state:hover {
+  background: #20BA5A;
+  border-color: #20BA5A;
+  transform: translateY(-50%) translateX(-2px);
+  width: 32px;
+}
+
+.slider-toggle-icon {
+  width: 12px;
+  height: 12px;
+  color: #ffffff;
+}
+
+.whatsapp-slider-toggle.toggle-hidden-state .slider-toggle-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Banner section - Dark grey to differentiate from light footer */
+.whatsapp-widget-banner {
+  background: #2d3748; /* Dark grey/charcoal - different from footer's light blue */
+  border-radius: 12px 0 0 12px;
+  padding: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  position: absolute; /* Position absolutely so it doesn't take space when collapsed */
+  right: 56px; /* Position to the left of the icon (icon width) */
+  width: 0;
+  min-width: 0; /* No min-width when collapsed */
+  overflow: hidden;
+  opacity: 0;
+  transition: width 0.4s ease, opacity 0.3s ease, padding 0.4s ease, min-width 0.4s ease;
+  white-space: nowrap;
+  pointer-events: none; /* Prevent hover on collapsed banner */
+}
+
+/* Enable pointer events when banner is visible */
+.whatsapp-widget-banner:hover,
+.whatsapp-widget-icon:hover ~ .whatsapp-widget-banner {
+  pointer-events: auto;
+}
+
+/* On hover of ICON only, expand banner */
+.whatsapp-widget-icon:hover ~ .whatsapp-widget-banner,
+.whatsapp-widget-banner:hover {
+  width: 180px;
+  min-width: 180px;
+  opacity: 1;
+  padding: 12px 16px;
+}
+
+.whatsapp-widget-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 180px; /* Fixed width, not min-width */
+}
+
+.whatsapp-widget-main-text {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.whatsapp-widget-sub-text {
+  color: #a0aec0; /* Light grey for secondary text */
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+/* WhatsApp Icon - Initially circular, changes on hover */
+.whatsapp-widget-icon {
+  width: 56px;
+  height: 56px;
+  background: #25D366; /* Official WhatsApp green */
+  border-radius: 50%; /* Initially fully circular */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+  transition: background 0.3s ease, transform 0.3s ease, border-radius 0.4s ease;
+  flex-shrink: 0;
+}
+
+/* On hover of icon, change border-radius to match banner design */
+.whatsapp-widget-icon:hover {
+  background: #20BA5A; /* Slightly darker green on hover */
+  transform: scale(1.05) translateY(-2px);
+  border-radius: 12px 12px 12px 12px; /* Rounded when banner is visible */
+}
+
+/* When banner is visible (hovered), adjust icon */
+.whatsapp-widget-icon:hover ~ .whatsapp-widget-banner + .whatsapp-widget-icon,
+.whatsapp-widget-content:has(.whatsapp-widget-banner:hover) .whatsapp-widget-icon {
+  background: #20BA5A;
+  border-radius: 12px 0 0 12px; /* Right side flat when connected to banner */
+}
+
+.whatsapp-icon-svg {
+  width: 28px;
+  height: 28px;
+  color: #ffffff;
+}
+
+/* Fade-in animation */
+@keyframes whatsapp-widget-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive design - adjust for smaller screens */
+@media (max-width: 768px) {
+  .whatsapp-support-widget {
+    bottom: 22px;
+    right: 15px;
+  }
+
+  .whatsapp-widget-banner {
+    right: 50px; /* Adjust for smaller icon */
+  }
+
+  .whatsapp-widget-icon:hover ~ .whatsapp-widget-banner,
+  .whatsapp-widget-banner:hover {
+    width: 160px;
+    min-width: 160px;
+    padding: 10px 14px;
+  }
+
+  .whatsapp-widget-text {
+    width: 160px;
+  }
+
+  .whatsapp-widget-main-text {
+    font-size: 13px;
+  }
+
+  .whatsapp-widget-sub-text {
+    font-size: 11px;
+  }
+
+  .whatsapp-widget-icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .whatsapp-icon-svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* Ensure it doesn't overlap with footer on mobile */
+@media (max-width: 480px) {
+  .whatsapp-support-widget {
+    bottom: 22px; /* Higher position to avoid footer */
+  }
+}
+
+
