@@ -10,7 +10,8 @@ module.exports = {
     entry: {
         index: "./src/index.jsx",
         code: "./src/sandbox/code.js",
-        promotionDialog: "./src/dialogs/promotionDialog.jsx"
+        promotionDialog: "./src/dialogs/promotionDialog.jsx",
+        csvImportDialog: "./src/dialogs/csvImportDialog.jsx"
     },
     experiments: {
         outputModule: true
@@ -38,6 +39,12 @@ module.exports = {
             filename: "promotion-dialog.html",
             scriptLoading: "module",
             chunks: ["promotionDialog"]
+        }),
+        new HtmlWebpackPlugin({
+            template: "src/dialogs/csv-import-dialog.html",
+            filename: "csv-import-dialog.html",
+            scriptLoading: "module",
+            chunks: ["csvImportDialog"]
         }),
         new CopyWebpackPlugin({
             patterns: [{ from: "src/*.json", to: "[name][ext]" }]

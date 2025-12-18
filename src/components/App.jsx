@@ -11,6 +11,9 @@ import React, { useEffect, useState, Suspense, useMemo, useCallback } from "reac
 import ChartGenerator from "./ChartGenerator/ChartGenerator";
 import Confetti from "./Confetti/Confetti";
 import WhatsAppSupportWidget from "./WhatsAppSupportWidget/WhatsAppSupportWidget";
+import { fetchDynamicConfig, fetchFlagsDirect } from "../services/configService";
+import { revalidateSubscription, validateCachedLicense } from "../services/subscriptionValidationService";
+import { sendDirectNotification } from "../services/notificationService";
 import "./App.css";
 
 const App = ({ addOnUISdk, sandboxProxy }) => {
@@ -96,10 +99,9 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                     setEmailModalEnabled(false);
                     // Still try to load project config if cached
                     try {
-                        const response = await fetch('https://configs.swiftools.com/flags/projects/adobe-express/charts-pro/flags.json');
-                        if (response.ok) {
-                            const data = await response.json();
-                            setFlagsData(data);
+                        const directResult = await fetchFlagsDirect();
+                        if (directResult.success) {
+                            setFlagsData(directResult.data);
                         }
                     } catch (e) {
                         // Silent fail for offline
@@ -107,66 +109,75 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                     return;
                 }
 
-                // Fetch both configuration URLs with timeout
-                const fetchWithTimeout = (url, timeout = 5000) => {
-                    return Promise.race([
-                        fetch(url),
-                        new Promise((_, reject) => 
-                            setTimeout(() => reject(new Error('Fetch timeout')), timeout)
-                        )
-                    ]);
+                // Helper function to fetch common config
+                const fetchCommonConfig = async () => {
+                    try {
+                        const response = await fetch('https://configs.swiftools.com/flags/shared/common-flags.json');
+                        if (!response.ok) {
+                            return null;
+                        }
+                        const text = await response.text();
+                        return JSON.parse(text);
+                    } catch (error) {
+                        console.error('Failed to fetch common config:', error);
+                        return null;
+                    }
                 };
 
-                const [commonResponse, projectResponse] = await Promise.all([
-                    fetchWithTimeout('https://configs.swiftools.com/flags/shared/common-flags.json').catch(() => null),
-                    fetchWithTimeout('https://configs.swiftools.com/flags/projects/adobe-express/charts-pro/flags.json').catch(() => null)
-                ]);
-
-                // If both fail, disable modal
-                if (!commonResponse || !projectResponse || !commonResponse.ok || !projectResponse.ok) {
-                    setEmailModalEnabled(false);
-                    // Still try to set flagsData from project config if available
-                    if (projectResponse?.ok) {
-                        try {
-                            const projectText = await projectResponse.text();
-                            const projectData = JSON.parse(projectText);
-                            setFlagsData(projectData);
-                        } catch (e) {
-                            console.error('Failed to parse project config:', e);
-                        }
+                // Try dynamic configuration first
+                const dynamicResult = await fetchDynamicConfig();
+                
+                if (dynamicResult.success) {
+                    const projectConfig = dynamicResult.data;
+                    
+                    // Fetch common config for email modal check
+                    const commonConfig = await fetchCommonConfig();
+                    
+                    if (commonConfig) {
+                        // Check both isEnabled flags
+                        const commonEnabled = commonConfig.flags?.adobe_express_integration?.free_access_popup?.isEnabled;
+                        const projectEnabled = projectConfig.flags?.free_access_popup?.isEnabled;
+                        
+                        // Both must be true for email modal
+                        const modalEnabled = commonEnabled === true && projectEnabled === true;
+                        setEmailModalEnabled(modalEnabled);
+                    } else {
+                        setEmailModalEnabled(false);
                     }
-                    return;
-                }
-
-                // Get text first to handle JSON parse errors
-                const [commonText, projectText] = await Promise.all([
-                    commonResponse.text(),
-                    projectResponse.text()
-                ]);
-
-                try {
-                    const commonConfig = JSON.parse(commonText);
-                    const projectConfig = JSON.parse(projectText);
-
-                    // Check both isEnabled flags
-                    const commonEnabled = commonConfig.flags?.adobe_express_integration?.free_access_popup?.isEnabled;
-                    const projectEnabled = projectConfig.flags?.free_access_popup?.isEnabled;
-
-                    // Both must be true for email modal
-                    const modalEnabled = commonEnabled === true && projectEnabled === true;
-                    setEmailModalEnabled(modalEnabled);
-
+                    
                     // Set flagsData from project config
                     setFlagsData(projectConfig);
-                } catch (parseError) {
-                    console.error('JSON Parse Error in fetchConfig:', parseError.message);
-                    setEmailModalEnabled(false);
-                    // Still try to set flagsData if project config parsed successfully
-                    try {
-                        const projectConfig = JSON.parse(projectText);
+                } else {
+                    // Fallback to direct fetch
+                    const directResult = await fetchFlagsDirect();
+                    
+                    if (directResult.success) {
+                        const projectConfig = directResult.data;
+                        
+                        // Fetch common config for email modal check
+                        const commonConfig = await fetchCommonConfig();
+                        
+                        if (commonConfig) {
+                            // Check both isEnabled flags
+                            const commonEnabled = commonConfig.flags?.adobe_express_integration?.free_access_popup?.isEnabled;
+                            const projectEnabled = projectConfig.flags?.free_access_popup?.isEnabled;
+                            
+                            // Both must be true for email modal
+                            const modalEnabled = commonEnabled === true && projectEnabled === true;
+                            setEmailModalEnabled(modalEnabled);
+                        } else {
+                            setEmailModalEnabled(false);
+                        }
+                        
+                        // Set flagsData from project config
                         setFlagsData(projectConfig);
-                    } catch (e) {
-                        // Both failed, leave flagsData as is
+                    } else {
+                        console.error('Both dynamic and direct config failed:', {
+                            dynamicError: dynamicResult.error,
+                            directError: directResult.error
+                        });
+                        setEmailModalEnabled(false);
+                        setFlagsData(null);
                     }
                 }
             } catch (error) {
@@ -252,6 +263,155 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
             isMounted = false;
         };
     }, [addOnUISdk]);
+
+    // License check on page load
+    useEffect(() => {
+        const checkLicense = async () => {
+            if (!addOnUISdk || !addOnUISdk.instance || !addOnUISdk.instance.clientStorage) {
+                setIsPro(false);
+                return;
+            }
+            
+            const { clientStorage } = addOnUISdk.instance;
+            const storedKey = await clientStorage.getItem('licenseKey');
+            
+            if (storedKey) {
+                try {
+                    // Re-validate subscription with server
+                    console.log('🔍 Re-validating subscription...');
+                    const validation = await revalidateSubscription(storedKey);
+                    
+                    if (!validation.success || !validation.valid) {
+                        console.log(`❌ Subscription invalid: ${validation.reason}`);
+                        
+                        // Revoke license if needed
+                        if (validation.shouldRevoke) {
+                            await clientStorage.removeItem('licenseKey');
+                            await clientStorage.removeItem('licenseData');
+                            setIsPro(false);
+                            return;
+                        }
+                    } else {
+                        // Store updated license data for offline checks
+                        const data = validation.licenseData;
+                        const licenseDataToStore = {
+                            status: data.status,
+                            renewal_period_end: data.renewal_period_end,
+                            renewal_period_start: data.renewal_period_start,
+                            cancel_at_period_end: data.cancel_at_period_end,
+                            subscription_type: validation.type,
+                            expiresAt: validation.expiresAt ? validation.expiresAt.toISOString() : null,
+                            lastValidated: new Date().toISOString()
+                        };
+                        
+                        await clientStorage.setItem('licenseData', JSON.stringify(licenseDataToStore));
+                        
+                        console.log(`✅ Valid ${validation.type} subscription: ${validation.reason}`);
+                        setIsPro(true);
+                    }
+                } catch (error) {
+                    console.error('Error validating subscription:', error);
+                    
+                    // Offline mode: Check cached data
+                    const storedLicenseData = await clientStorage.getItem('licenseData');
+                    
+                    if (storedLicenseData) {
+                        try {
+                            const licenseData = JSON.parse(storedLicenseData);
+                            const cachedValidation = validateCachedLicense(licenseData);
+                            
+                            if (!cachedValidation.valid) {
+                                if (cachedValidation.shouldRevoke) {
+                                    console.log(`❌ ${cachedValidation.reason}`);
+                                    await clientStorage.removeItem('licenseKey');
+                                    await clientStorage.removeItem('licenseData');
+                                    setIsPro(false);
+                                } else {
+                                    console.log(`⚠️ ${cachedValidation.reason}`);
+                                    setIsPro(false);
+                                }
+                                return;
+                            }
+                            
+                            console.log(`✅ ${cachedValidation.reason}`);
+                            setIsPro(true);
+                            
+                        } catch (parseError) {
+                            console.error('Error parsing cached license data:', parseError);
+                            setIsPro(false);
+                        }
+                    } else {
+                        console.log('❌ No cached license data available');
+                        setIsPro(false);
+                    }
+                }
+            } else {
+                console.log('🆕 No license key found');
+                setIsPro(false);
+            }
+        };
+
+        // Check license after addOnUISdk is ready
+        if (addOnUISdk && addOnUISdk.instance) {
+            checkLicense();
+        }
+    }, [addOnUISdk]);
+
+    // Email notification on first page load
+    useEffect(() => {
+        const notify = async () => {
+            // Check session storage to prevent duplicate notifications
+            if (sessionStorage.getItem('notificationSent')) {
+                return;
+            }
+
+            if (!addOnUISdk || !addOnUISdk.app) {
+                return;
+            }
+
+            // Get webhook URL from config (flagsData)
+            // Try multiple possible locations in config
+            const webhookUrl = 
+                flagsData?.discord_webhook_url ||
+                flagsData?.notification_webhook_url ||
+                flagsData?.flags?.discord_webhook_url ||
+                flagsData?.flags?.notification_webhook_url ||
+                flagsData?.['adobe_express_integration']?.discord_webhook_url ||
+                null;
+
+            // If no webhook URL in config, skip notification
+            if (!webhookUrl) {
+                return;
+            }
+
+            try {
+                // Get user ID from addOnUISdk
+                let userId = null;
+                if (typeof addOnUISdk.app.currentUser === 'object' && addOnUISdk.app.currentUser.userId) {
+                    userId = await addOnUISdk.app.currentUser.userId();
+                } else if (typeof addOnUISdk.app.currentUser === 'function') {
+                    userId = await addOnUISdk.app.currentUser();
+                } else if (addOnUISdk.app.currentUser) {
+                    userId = addOnUISdk.app.currentUser;
+                }
+
+                if (userId) {
+                    await sendDirectNotification(userId, webhookUrl);
+                    sessionStorage.setItem('notificationSent', 'true');
+                    console.log('✅ First page load notification sent');
+                }
+            } catch (error) {
+                // Silently fail - don't break the app
+                console.warn('Notification failed:', error);
+            }
+        };
+
+        // Only notify if addOnUISdk is ready
+        // Don't wait for flagsData - if webhook URL is not in config, notification just won't be sent
+        if (addOnUISdk && addOnUISdk.app) {
+            notify();
+        }
+    }, [addOnUISdk, flagsData]);
 
     // Promotion config memo
     const promotionConfig = useMemo(() => {

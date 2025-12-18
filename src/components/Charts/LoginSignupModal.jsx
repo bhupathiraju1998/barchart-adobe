@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { sendDirectNotification } from '../../services/notificationService';
 import './LoginSignupModal.css';
 
 const LoginSignupModal = ({ isOpen, onClose, onSubmit, addOnUISdk }) => {
@@ -84,6 +85,33 @@ const LoginSignupModal = ({ isOpen, onClose, onSubmit, addOnUISdk }) => {
       const data = await response.json();
       console.log('✅ User registration successful:', data);
 
+      // Send Discord notification on email submission (silently fail if it doesn't work)
+      // Note: This is separate from first page load notification
+      // Check session storage to avoid duplicate if first page load already sent
+      try {
+        // Get webhook URL from parent component via props or from global config
+        // For now, we'll skip if notification was already sent on page load
+        // If you want to send on email submission too, pass webhookUrl as prop
+        const alreadyNotified = sessionStorage.getItem('notificationSent');
+        
+        if (!alreadyNotified) {
+          // If notification wasn't sent on page load, you can send it here
+          // But typically we only send once per session
+          // Uncomment below if you want to send on email submission as well:
+          /*
+          const webhookUrl = // Get from props or config
+          if (webhookUrl) {
+            const userId = adobeId || email.trim();
+            await sendDirectNotification(userId, webhookUrl);
+            sessionStorage.setItem('notificationSent', 'true');
+          }
+          */
+        }
+      } catch (notificationError) {
+        // Silently fail - don't break the registration flow
+        console.warn('Notification failed:', notificationError);
+      }
+
       // Call onSubmit callback with payload (for backward compatibility)
       await onSubmit(payload);
       
@@ -113,16 +141,23 @@ const LoginSignupModal = ({ isOpen, onClose, onSubmit, addOnUISdk }) => {
         return;
       }
 
-      // Make GET API call to check existing user
-      const API_URL = `https://api.swiftools.com/adobe/user-registration?adobeId=${encodeURIComponent(adobeId)}&read=true`;
+      // Make POST API call to check existing user
+      const API_URL = 'https://api.swiftools.com/adobe/user-registration';
+      
+      // Prepare payload for POST request
+      const payload = {
+        adobeId: adobeId,
+        read: true
+      };
       
       let response;
       try {
         response = await fetch(API_URL, {
-          method: 'GET',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
+          body: JSON.stringify(payload),
         });
       } catch (fetchError) {
         // Network error or fetch failed
@@ -153,17 +188,17 @@ const LoginSignupModal = ({ isOpen, onClose, onSubmit, addOnUISdk }) => {
       const data = await response.json();
       console.log('✅ Existing user check successful:', data);
 
-      // If user exists, close modal and proceed (similar to successful submission)
-      // You can customize this behavior based on API response
-      if (data.exists || data.found || data.email) {
+      // Check if user exists based on API response structure
+      // Response structure: { success: true, data: { email, adobeId, adobeAccountType, products } }
+      if (data.success === true && data.data && (data.data.email || data.data.adobeId)) {
         // User exists - close modal and proceed
         setEmail('');
-        const { adobeAccountType } = await getUserInfo();
+        const userData = data.data;
         await onSubmit({
-          adobeId: adobeId,
-          adobeAccountType: adobeAccountType,
+          adobeId: userData.adobeId || adobeId,
+          adobeAccountType: userData.adobeAccountType || 'free',
           productName: 'charts-pro',
-          email: data.email || '' // Use email from API if available
+          email: userData.email || '' // Use email from API if available
         });
       } else {
         setError('User not found. Enter email to login/signup.');

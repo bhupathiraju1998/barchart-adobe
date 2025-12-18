@@ -28,6 +28,11 @@ const ChartGenerator = ({
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isLoginSignupModalOpen, setIsLoginSignupModalOpen] = useState(false);
     const [importedData, setImportedData] = useState(null);
+
+    // Debug: Log when importedData changes
+    React.useEffect(() => {
+        console.log('🟢 [ChartGenerator] importedData changed:', importedData);
+    }, [importedData]);
     const [stylingOptions, setStylingOptions] = useState({
         // Common options
         labelVisible: true,
@@ -223,10 +228,10 @@ const ChartGenerator = ({
                 legendTextStyleFontStyle: currentOption.legend?.[0]?.textStyle?.fontStyle
             });
 
-            // Export chart as data URL (PNG format)
+            // Export chart as data URL (PNG format) with high quality
             const dataUrl = echartsInstance.getDataURL({
                 type: 'png',
-                pixelRatio: 2,
+                pixelRatio: 4,
                 backgroundColor: '#fff'
             });
 
@@ -297,15 +302,62 @@ const ChartGenerator = ({
         }
     }, [addChartToPage, onEmailSubmitted]);
 
-    const handleImportCSV = useCallback(() => {
+    const handleImportCSV = useCallback(async () => {
         if (!sandboxProxy) {
             alert("Please wait for the add-on to initialize.");
             return;
         }
         
-        console.log("🟢 [ChartGenerator] Import CSV clicked");
-        setIsUploadModalOpen(true);
-    }, [sandboxProxy]);
+        if (!addOnUISdk?.app?.showModalDialog) {
+            alert("Dialog API not available. Please try again.");
+            return;
+        }
+        
+        console.log("🟢 [ChartGenerator] Import CSV clicked - opening dialog");
+        
+        try {
+            const dialogUrl = "csv-import-dialog.html";
+            const result = await addOnUISdk.app.showModalDialog({
+                variant: "custom",
+                title: "Import CSV Data",
+                src: dialogUrl,
+                size: { width: 1200, height: 700 },
+            });
+            
+            console.log("🟢 [ChartGenerator] Dialog closed with result:", result);
+            
+            // Handle dialog result - result structure is: { type: 'custom', buttonType: 'primary', result: { labels: [...], values: [...] } }
+            // The actual chartData is at result.result
+            if (result && result.result) {
+                let chartData = result.result;
+                
+                // Check if it's nested one more level (result.result.result)
+                if (chartData.result && chartData.result.labels && chartData.result.values) {
+                    chartData = chartData.result;
+                }
+                
+                // Validate the data structure
+                if (chartData && Array.isArray(chartData.labels) && Array.isArray(chartData.values)) {
+                    console.log("🟢 [ChartGenerator] Valid data received from dialog:", chartData);
+                    console.log("🟢 [ChartGenerator] Setting importedData with:", {
+                        labelsCount: chartData.labels.length,
+                        valuesCount: chartData.values.length,
+                        labels: chartData.labels.slice(0, 5), // Show first 5 for debugging
+                        values: chartData.values.slice(0, 5)  // Show first 5 for debugging
+                    });
+                    setImportedData(chartData);
+                } else {
+                    console.log("🟡 [ChartGenerator] Dialog closed without valid data structure. Result:", result);
+                    console.log("🟡 [ChartGenerator] chartData:", chartData);
+                }
+            } else {
+                console.log("🟡 [ChartGenerator] Dialog closed with no result");
+            }
+        } catch (error) {
+            console.error("❌ [ChartGenerator] Error opening CSV import dialog:", error);
+            alert("Failed to open import dialog. Please try again.");
+        }
+    }, [sandboxProxy, addOnUISdk]);
 
     const handleDataUploaded = useCallback((chartData) => {
         console.log("🟢 [ChartGenerator] Data uploaded:", chartData);

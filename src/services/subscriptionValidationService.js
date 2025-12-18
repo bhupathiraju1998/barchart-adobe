@@ -100,6 +100,74 @@ export const validateSubscription = (data) => {
 };
 
 /**
+ * Validates cached license data for offline mode
+ * @param {Object} licenseData - Cached license data
+ * @returns {Object} Validation result
+ */
+export const validateCachedLicense = (licenseData) => {
+    try {
+        // Check if cached validation is recent (within 24 hours)
+        const lastValidated = new Date(licenseData.lastValidated);
+        const hoursSinceValidation = (new Date() - lastValidated) / (1000 * 60 * 60);
+        
+        if (hoursSinceValidation > 24) {
+            return { 
+                valid: false, 
+                reason: 'Cached license data too old, need re-validation',
+                shouldRevoke: false // Don't revoke, just require re-validation
+            };
+        }
+        
+        // For lifetime licenses, always allow (even offline)
+        if (licenseData.subscription_type === 'lifetime') {
+            return { 
+                valid: true, 
+                type: 'lifetime',
+                reason: 'Lifetime license (offline)' 
+            };
+        }
+        
+        // For subscriptions, check expiration date
+        if (licenseData.expiresAt) {
+            const expiresAt = new Date(licenseData.expiresAt);
+            if (new Date() > expiresAt) {
+                return { 
+                    valid: false, 
+                    reason: 'Subscription expired (cached check)',
+                    shouldRevoke: true 
+                };
+            }
+        }
+        
+        // Check renewal_period_end from cache
+        if (licenseData.renewal_period_end) {
+            const renewalEnd = new Date(licenseData.renewal_period_end * 1000);
+            if (new Date() > renewalEnd) {
+                return { 
+                    valid: false, 
+                    reason: 'Renewal period ended (cached check)',
+                    shouldRevoke: true 
+                };
+            }
+        }
+        
+        return { 
+            valid: true, 
+            type: licenseData.subscription_type || 'subscription',
+            reason: 'Valid cached subscription (offline)' 
+        };
+        
+    } catch (error) {
+        console.error('Error validating cached license:', error);
+        return { 
+            valid: false, 
+            reason: 'Error parsing cached license data',
+            shouldRevoke: false 
+        };
+    }
+};
+
+/**
  * Re-validates subscription with server
  * @param {string} licenseKey - License key to validate
  * @returns {Promise<Object>} Validation result with full license data
@@ -133,4 +201,5 @@ export const revalidateSubscription = async (licenseKey) => {
         };
     }
 };
+
 
