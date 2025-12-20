@@ -1,9 +1,13 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import * as XLSX from 'xlsx';
-import ReactECharts from 'echarts-for-react';
+import ChartRenderer from './ChartRenderer';
 import './CSVImportDialogContent.css';
 
-const CSVImportDialogContent = ({ onClose, onDataSubmit }) => {
+const CSVImportDialogContent = ({ onClose, onDataSubmit, chartType = 'bar', theme = 'default' }) => {
+  // Debug: Log props
+  React.useEffect(() => {
+    console.log('🟢 [CSVImportDialogContent] Props received:', { chartType, theme });
+  }, [chartType, theme]);
   // Get sample data structure
   const getSampleData = () => {
     return [
@@ -33,17 +37,55 @@ const CSVImportDialogContent = ({ onClose, onDataSubmit }) => {
   };
 
   const initialData = initializeSampleData();
-  const [tableData, setTableData] = useState(initialData.rows);
-  const [headers, setHeaders] = useState(initialData.headers);
+  
+  // Load saved data from sessionStorage if available
+  const loadSavedData = () => {
+    try {
+      const savedDataStr = sessionStorage.getItem('csvImportDialog_savedData');
+      if (savedDataStr) {
+        const savedData = JSON.parse(savedDataStr);
+        if (savedData && savedData.headers && savedData.rows && Array.isArray(savedData.rows)) {
+          return {
+            headers: savedData.headers,
+            rows: savedData.rows,
+            isSample: false
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Error loading saved data:', error);
+    }
+    // Default to sample data
+    return {
+      headers: initialData.headers,
+      rows: initialData.rows,
+      isSample: true
+    };
+  };
+
+  const savedData = loadSavedData();
+  const [tableData, setTableData] = useState(savedData.rows);
+  const [headers, setHeaders] = useState(savedData.headers);
+  const [isUsingSampleData, setIsUsingSampleData] = useState(savedData.isSample);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [draggedRowIndex, setDraggedRowIndex] = useState(null);
   const fileInputRef = useRef(null);
+  const tableWrapperRef = useRef(null);
+  const rowRefs = useRef({});
 
   // Load sample data (reset to sample)
   const handleTrySampleData = useCallback(() => {
     const initial = initializeSampleData();
     setHeaders(initial.headers);
     setTableData(initial.rows);
+    setIsUsingSampleData(true);
+    // Clear saved data when resetting to sample
+    try {
+      sessionStorage.removeItem('csvImportDialog_savedData');
+    } catch (error) {
+      console.error('Error clearing saved data:', error);
+    }
   }, []);
 
   // Download sample CSV
@@ -248,6 +290,16 @@ const CSVImportDialogContent = ({ onClose, onDataSubmit }) => {
 
       setHeaders(parsedData.headers);
       setTableData(parsedData.data);
+      setIsUsingSampleData(false);
+      // Save imported data to sessionStorage
+      try {
+        sessionStorage.setItem('csvImportDialog_savedData', JSON.stringify({
+          headers: parsedData.headers,
+          rows: parsedData.data
+        }));
+      } catch (error) {
+        console.error('Error saving imported data:', error);
+      }
     } catch (error) {
       console.error('Error parsing file:', error);
       alert(error.message || 'The file you selected is invalid.');
@@ -298,9 +350,18 @@ const CSVImportDialogContent = ({ onClose, onDataSubmit }) => {
         ...newData[rowIndex],
         [header]: value
       };
+      // Save updated data to sessionStorage
+      try {
+        sessionStorage.setItem('csvImportDialog_savedData', JSON.stringify({
+          headers: headers,
+          rows: newData
+        }));
+      } catch (error) {
+        console.error('Error saving edited data:', error);
+      }
       return newData;
     });
-  }, []);
+  }, [headers]);
 
   // Add new row
   const handleAddRow = useCallback(() => {
@@ -309,7 +370,30 @@ const CSVImportDialogContent = ({ onClose, onDataSubmit }) => {
     headers.forEach(header => {
       newRow[header] = '';
     });
-    setTableData(prevData => [...(prevData || []), newRow]);
+    setTableData(prevData => {
+      const updatedData = [...(prevData || []), newRow];
+      const newRowIndex = updatedData.length - 1;
+      
+      // Save updated data to sessionStorage
+      try {
+        sessionStorage.setItem('csvImportDialog_savedData', JSON.stringify({
+          headers: headers,
+          rows: updatedData
+        }));
+      } catch (error) {
+        console.error('Error saving data after adding row:', error);
+      }
+      
+      // Auto-scroll to newly added row
+      setTimeout(() => {
+        const rowElement = rowRefs.current[`row-${newRowIndex}`];
+        if (rowElement && tableWrapperRef.current) {
+          rowElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
+      
+      return updatedData;
+    });
   }, [headers]);
 
   // Delete row
@@ -317,8 +401,66 @@ const CSVImportDialogContent = ({ onClose, onDataSubmit }) => {
     setTableData(prevData => {
       const newData = [...prevData];
       newData.splice(rowIndex, 1);
+      // Save updated data to sessionStorage
+      try {
+        sessionStorage.setItem('csvImportDialog_savedData', JSON.stringify({
+          headers: headers,
+          rows: newData
+        }));
+      } catch (error) {
+        console.error('Error saving data after deleting row:', error);
+      }
       return newData;
     });
+  }, [headers]);
+
+  // Handle row drag start
+  const handleRowDragStart = useCallback((e, rowIndex) => {
+    setDraggedRowIndex(rowIndex);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', rowIndex);
+  }, []);
+
+  // Handle row drag over
+  const handleRowDragOver = useCallback((e, targetIndex) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  // Handle row drop
+  const handleRowDrop = useCallback((e, targetIndex) => {
+    e.preventDefault();
+    
+    if (draggedRowIndex === null || draggedRowIndex === targetIndex) {
+      setDraggedRowIndex(null);
+      return;
+    }
+    
+    setTableData(prevData => {
+      const newData = [...prevData];
+      const draggedRow = newData[draggedRowIndex];
+      newData.splice(draggedRowIndex, 1);
+      newData.splice(targetIndex, 0, draggedRow);
+      
+      // Save updated data to sessionStorage
+      try {
+        sessionStorage.setItem('csvImportDialog_savedData', JSON.stringify({
+          headers: headers,
+          rows: newData
+        }));
+      } catch (error) {
+        console.error('Error saving data after reordering row:', error);
+      }
+      
+      return newData;
+    });
+    
+    setDraggedRowIndex(null);
+  }, [draggedRowIndex, headers]);
+
+  // Handle row drag end
+  const handleRowDragEnd = useCallback(() => {
+    setDraggedRowIndex(null);
   }, []);
 
   // Submit data
@@ -349,11 +491,23 @@ const CSVImportDialogContent = ({ onClose, onDataSubmit }) => {
     }
 
     console.log('🟢 [CSVImportDialogContent] Submitting data:', chartData);
+    
+    // Save current table data before submitting
+    try {
+      sessionStorage.setItem('csvImportDialog_savedData', JSON.stringify({
+        headers: headers,
+        rows: tableData
+      }));
+      console.log('🟢 [CSVImportDialogContent] Saved data to sessionStorage');
+    } catch (error) {
+      console.error('Error saving data before submit:', error);
+    }
+    
     onDataSubmit(chartData);
   }, [tableData, headers, onDataSubmit]);
 
-  // Generate chart option for preview
-  const chartOption = useMemo(() => {
+  // Prepare chart data from table
+  const chartData = useMemo(() => {
     if (!tableData || !headers.length || tableData.length === 0) {
       return null;
     }
@@ -364,174 +518,155 @@ const CSVImportDialogContent = ({ onClose, onDataSubmit }) => {
     const labels = tableData.map(row => row[labelColumn] || '');
     const values = tableData.map(row => parseFloat(row[valueColumn]) || 0);
 
-    return {
-      title: {
-        text: 'Chart Preview',
-        left: 'center',
-        textStyle: {
-          fontSize: 16,
-          fontWeight: 'bold'
-        }
-      },
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'shadow'
-        }
-      },
-      xAxis: {
-        type: 'category',
-        data: labels,
-        axisLabel: {
-          rotate: labels.length > 5 ? 45 : 0
-        }
-      },
-      yAxis: {
-        type: 'value'
-      },
-      series: [{
-        data: values,
-        type: 'bar',
-        itemStyle: {
-          color: '#5470c6'
-        }
-      }]
-    };
+    return { labels, values };
   }, [tableData, headers]);
 
   return (
     <div className="csv-import-dialog-content">
-      <div className="csv-import-dialog-header">
-        <h2>Import CSV Data</h2>
-        <button className="csv-import-dialog-close" onClick={onClose}>×</button>
-      </div>
-
       <div className="csv-import-dialog-body">
-        <div className="csv-import-left-panel">
-          <div className="csv-import-actions">
-            <button 
-              className="csv-import-try-sample-btn"
-              onClick={handleTrySampleData}
-            >
-              Try with Sample Data
-            </button>
-            <a 
-              href="#" 
-              className="csv-import-download-link"
-              onClick={handleDownloadSample}
-            >
-              Download CSV Sample
-            </a>
-          </div>
-
-          <div 
-            className={`csv-import-drop-zone ${isDragOver ? 'drag-over' : ''}`}
-            onClick={handleImportClick}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            style={{ cursor: 'pointer' }}
+        {/* Top Actions - Right Aligned */}
+        <div className="csv-import-top-actions">
+          <button 
+            className="csv-import-try-sample-btn"
+            onClick={handleTrySampleData}
           >
-            <p className="drop-text">Click to import CSV or Excel file</p>
-            <p className="drop-or">or</p>
-            <p className="drop-text">Drag and drop your file here</p>
-          </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,.xlsx,.xls"
-            onChange={handleFileSelect}
-            style={{ display: 'none' }}
-          />
-
-          {isLoading && (
-            <div className="csv-import-loading">Processing...</div>
-          )}
-
-          {tableData && headers.length > 0 && (
-            <div className="csv-import-table-container">
-              <div className="csv-import-table-header">
-                <h3>Edit Data</h3>
-                <button 
-                  className="csv-import-add-row-btn"
-                  onClick={handleAddRow}
-                >
-                  + Add Row
-                </button>
-              </div>
-              <div className="csv-import-table-wrapper">
-                <table className="csv-import-table">
-                  <thead>
-                    <tr>
-                      {headers.map((header, idx) => (
-                        <th key={idx}>{header}</th>
-                      ))}
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tableData.map((row, rowIndex) => (
-                      <tr key={rowIndex}>
-                        {headers.map((header, colIndex) => (
-                          <td key={colIndex}>
-                            <input
-                              type="text"
-                              value={row[header] || ''}
-                              onChange={(e) => handleCellEdit(rowIndex, header, e.target.value)}
-                              className="csv-import-cell-input"
-                            />
-                          </td>
-                        ))}
-                        <td>
-                          <button
-                            className="csv-import-delete-row-btn"
-                            onClick={() => handleDeleteRow(rowIndex)}
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          <div className="csv-import-dialog-footer">
-            <button 
-              className="csv-import-cancel-btn"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            <button 
-              className="csv-import-submit-btn"
-              onClick={handleSubmit}
-              disabled={!tableData || tableData.length === 0}
-            >
-              Apply Data
-            </button>
-          </div>
+            Try with Sample Data
+          </button>
+          <a 
+            href="#" 
+            className="csv-import-download-link"
+            onClick={handleDownloadSample}
+          >
+            Download CSV Sample
+          </a>
         </div>
 
-        <div className="csv-import-right-panel">
-          <div className="csv-import-preview-container">
-            <h3>Chart Preview</h3>
-            {chartOption ? (
-              <ReactECharts 
-                option={chartOption}
-                style={{ height: '400px', width: '100%' }}
-                notMerge={true}
-                lazyUpdate={false}
-              />
-            ) : (
-              <div className="csv-import-preview-placeholder">
-                <p>Import data or try sample data to see preview</p>
+        {/* Full Width Drag and Drop Zone */}
+        <div 
+          className={`csv-import-drop-zone ${isDragOver ? 'drag-over' : ''}`}
+          onClick={handleImportClick}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          style={{ cursor: 'pointer' }}
+        >
+          <p className="drop-text">Click to import CSV or Excel file</p>
+          <p className="drop-or">or</p>
+          <p className="drop-text">Drag and drop your file here</p>
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,.xlsx,.xls"
+          onChange={handleFileSelect}
+          style={{ display: 'none' }}
+        />
+
+        {isLoading && (
+          <div className="csv-import-loading">Processing...</div>
+        )}
+
+        {/* Edit Data Section */}
+        {tableData && headers.length > 0 ? (
+          <div className="csv-import-table-container">
+            <div className="csv-import-table-header">
+              <div>
+                <h3>Edit Data</h3>
+                <p className="csv-import-data-info">
+                  {isUsingSampleData ? (
+                    <span className="csv-import-dummy-badge">📊 Showing sample data - Drag & drop your CSV to replace</span>
+                  ) : (
+                    <span className="csv-import-csv-badge">📄 Your CSV data - Edit cells below</span>
+                  )}
+                </p>
               </div>
-            )}
+              <button 
+                className="csv-import-add-row-btn"
+                onClick={handleAddRow}
+              >
+                + Add Row
+              </button>
+            </div>
+            <div 
+              ref={tableWrapperRef}
+              className="csv-import-table-wrapper"
+            >
+              <table className="csv-import-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '30px' }}></th>
+                    {headers.map((header, idx) => (
+                      <th key={idx}>{header}</th>
+                    ))}
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableData.map((row, rowIndex) => (
+                    <tr 
+                      key={rowIndex}
+                      ref={el => rowRefs.current[`row-${rowIndex}`] = el}
+                      draggable
+                      onDragStart={(e) => handleRowDragStart(e, rowIndex)}
+                      onDragOver={(e) => handleRowDragOver(e, rowIndex)}
+                      onDrop={(e) => handleRowDrop(e, rowIndex)}
+                      onDragEnd={handleRowDragEnd}
+                      className={draggedRowIndex === rowIndex ? 'csv-import-row-dragging' : ''}
+                    >
+                      <td className="csv-import-drag-handle">
+                        <span className="csv-import-drag-icon">⋮⋮</span>
+                      </td>
+                      {headers.map((header, colIndex) => (
+                        <td key={colIndex}>
+                          <input
+                            type="text"
+                            value={row[header] || ''}
+                            onChange={(e) => handleCellEdit(rowIndex, header, e.target.value)}
+                            className="csv-import-cell-input"
+                          />
+                        </td>
+                      ))}
+                      <td>
+                        <button
+                          className="csv-import-delete-row-btn"
+                          onClick={() => handleDeleteRow(rowIndex)}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
+        ) : (
+          <div className="csv-import-empty-state">
+            <p className="csv-import-empty-text">
+              📊 <strong>Sample data loaded</strong>
+            </p>
+            <p className="csv-import-empty-subtext">
+              Drag and drop your CSV file above to replace the sample data, or click "Try with Sample Data" to reset.
+            </p>
+          </div>
+        )}
+
+        {/* Footer with Apply Data - Right Aligned */}
+        <div className="csv-import-dialog-footer">
+          <button 
+            className="csv-import-cancel-btn"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button 
+            className="csv-import-submit-btn"
+            onClick={handleSubmit}
+            disabled={!tableData || tableData.length === 0}
+          >
+            Apply Data
+          </button>
         </div>
       </div>
     </div>

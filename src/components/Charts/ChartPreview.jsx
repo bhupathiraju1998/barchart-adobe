@@ -1,5 +1,5 @@
 import React, { useMemo, useRef } from 'react';
-import ReactECharts from 'echarts-for-react';
+import ChartRenderer from './ChartRenderer';
 
 const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptions }) => {
     const chartRef = useRef(null);
@@ -1039,13 +1039,11 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
 
     return (
         <div className="chart-preview">
-            <ReactECharts 
+            <ChartRenderer
                 ref={chartRef}
-                option={chartOption} 
-                theme={echartsTheme}
+                option={chartOption}
+                theme={theme}
                 style={{ height: '300px', width: '100%' }}
-                notMerge={true}
-                lazyUpdate={false}
             />
         </div>
     );

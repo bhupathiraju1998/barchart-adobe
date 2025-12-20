@@ -314,9 +314,12 @@ const ChartGenerator = ({
         }
         
         console.log("🟢 [ChartGenerator] Import CSV clicked - opening dialog");
+        console.log("🟢 [ChartGenerator] Current selectedChart:", selectedChart, "selectedTheme:", selectedTheme);
         
         try {
-            const dialogUrl = "csv-import-dialog.html";
+            // Pass current chart type and theme as URL parameters
+            const dialogUrl = `csv-import-dialog.html?chartType=${encodeURIComponent(selectedChart)}&theme=${encodeURIComponent(selectedTheme)}`;
+            console.log("🟢 [ChartGenerator] Dialog URL:", dialogUrl);
             const result = await addOnUISdk.app.showModalDialog({
                 variant: "custom",
                 title: "Import CSV Data",
@@ -357,7 +360,7 @@ const ChartGenerator = ({
             console.error("❌ [ChartGenerator] Error opening CSV import dialog:", error);
             alert("Failed to open import dialog. Please try again.");
         }
-    }, [sandboxProxy, addOnUISdk]);
+    }, [sandboxProxy, addOnUISdk, selectedChart, selectedTheme]);
 
     const handleDataUploaded = useCallback((chartData) => {
         console.log("🟢 [ChartGenerator] Data uploaded:", chartData);
