@@ -476,19 +476,31 @@ const CSVImportDialogContent = ({ onClose, onDataSubmit, chartType = 'bar', them
     }
 
     const labelColumn = headers[0];
-    const valueColumn = headers[1];
+    // Get all value columns (columns 2+)
+    const valueColumns = headers.slice(1);
     
-    const chartData = {
-      labels: tableData.map(row => row[labelColumn] || ''),
-      values: tableData.map(row => parseFloat(row[valueColumn]) || 0)
-    };
+    // Extract labels
+    const labels = tableData.map(row => row[labelColumn] || '');
+    
+    // Extract values for each value column
+    const values = valueColumns.map(column => 
+      tableData.map(row => parseFloat(row[column]) || 0)
+    );
 
     // Validate that we have at least some numeric values
-    const hasValidNumbers = chartData.values.some(val => !isNaN(val) && isFinite(val));
+    const hasValidNumbers = values.some(columnValues => 
+      columnValues.some(val => !isNaN(val) && isFinite(val))
+    );
     if (!hasValidNumbers) {
-      alert('The values column must contain numeric data.');
+      alert('The values columns must contain numeric data.');
       return;
     }
+
+    // For backward compatibility, if only one value column, use single array
+    // Otherwise, use array of arrays for multiple series
+    const chartData = valueColumns.length === 1 
+      ? { labels, values: values[0] }
+      : { labels, values, seriesNames: valueColumns };
 
     console.log('🟢 [CSVImportDialogContent] Submitting data:', chartData);
     
@@ -513,12 +525,16 @@ const CSVImportDialogContent = ({ onClose, onDataSubmit, chartType = 'bar', them
     }
 
     const labelColumn = headers[0];
-    const valueColumn = headers[1];
+    const valueColumns = headers.slice(1);
     
     const labels = tableData.map(row => row[labelColumn] || '');
-    const values = tableData.map(row => parseFloat(row[valueColumn]) || 0);
+    const values = valueColumns.map(column => 
+      tableData.map(row => parseFloat(row[column]) || 0)
+    );
 
-    return { labels, values };
+    return valueColumns.length === 1 
+      ? { labels, values: values[0] }
+      : { labels, values, seriesNames: valueColumns };
   }, [tableData, headers]);
 
   return (

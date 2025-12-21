@@ -20,17 +20,24 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
         // Line/Area options
         lineWidth: stylingOptions?.lineWidth ?? 3,
         lineSmooth: stylingOptions?.lineSmooth ?? true,
-        showDataPoints: stylingOptions?.showDataPoints ?? (chartType === 'line' || chartType === 'area' ? true : false),
+        showDataPoints: stylingOptions?.showDataPoints ?? (chartType === 'line' || chartType === 'area' || chartType === 'radar' ? true : false),
         pointSize: stylingOptions?.pointSize ?? 8,
         // Bar options
         barWidth: stylingOptions?.barWidth ?? 60,
         barBorderRadius: stylingOptions?.barBorderRadius ?? 4,
         barSpacing: stylingOptions?.barSpacing ?? 0,
         // Pie options
-        innerRadius: stylingOptions?.innerRadius ?? (chartType === 'pie-doughnut' ? 50 : chartType === 'pie-nightingale' ? 20 : 0),
-        outerRadius: stylingOptions?.outerRadius ?? (chartType === 'pie-doughnut' ? 70 : chartType === 'pie-nightingale' ? 100 : 40),
+        innerRadius: stylingOptions?.innerRadius ?? (chartType === 'pie-nightingale' ? 0 : 20),
+        outerRadius: stylingOptions?.outerRadius ?? (chartType === 'pie-nightingale' ? 100 : 40),
         labelLineLength: stylingOptions?.labelLineLength ?? 15,
         showLegend: stylingOptions?.showLegend ?? true,
+        // Radar options
+        radarRadius: stylingOptions?.radarRadius ?? 70,
+        radarNameGap: stylingOptions?.radarNameGap ?? 5,
+        radarSplitNumber: stylingOptions?.radarSplitNumber ?? 5,
+        radarShape: stylingOptions?.radarShape ?? 'polygon',
+        radarShowArea: stylingOptions?.radarShowArea ?? true,
+        radarAreaOpacity: stylingOptions?.radarAreaOpacity ?? 30,
         // Funnel options
         funnelWidth: stylingOptions?.funnelWidth ?? 80,
         funnelGap: stylingOptions?.funnelGap ?? 2,
@@ -55,6 +62,7 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
     const scatterPointShapePickerRef = useRef(null);
     const scatterSortPickerRef = useRef(null);
     const scatterLabelPositionPickerRef = useRef(null);
+    const radarShapePickerRef = useRef(null);
 
     // Adobe-supported free fonts
     const fontFamilies = [
@@ -113,7 +121,8 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
     const hasAxis = ['bar', 'line', 'area', 'scatter', 'bar-horizontal', 'mixed'].includes(chartType);
     const isLineChart = ['line', 'area', 'mixed'].includes(chartType);
     const isBarChart = ['bar', 'bar-horizontal', 'mixed'].includes(chartType);
-    const isPieChart = ['pie', 'pie-doughnut', 'pie-nightingale'].includes(chartType);
+    const isPieChart = ['pie', 'pie-nightingale'].includes(chartType);
+    const isRadarChart = chartType === 'radar';
     const isFunnelChart = chartType === 'funnel';
     const isScatterChart = chartType === 'scatter';
     const isAreaChart = chartType === 'area';
@@ -133,7 +142,7 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                 yAxisRotation: stylingOptions.yAxisRotation ?? 0,
                 lineWidth: stylingOptions.lineWidth ?? 3,
                 lineSmooth: stylingOptions.lineSmooth ?? true,
-                showDataPoints: stylingOptions.showDataPoints !== undefined ? stylingOptions.showDataPoints : (chartType === 'line' || chartType === 'area' ? true : false),
+                showDataPoints: stylingOptions.showDataPoints !== undefined ? stylingOptions.showDataPoints : (chartType === 'line' || chartType === 'area' || chartType === 'radar' ? true : false),
                 pointSize: stylingOptions.pointSize ?? 8,
                 barWidth: stylingOptions.barWidth ?? 60,
                 barBorderRadius: stylingOptions.barBorderRadius ?? 4,
@@ -151,7 +160,13 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                 scatterShowLabels: stylingOptions.scatterShowLabels ?? true,
                 scatterSort: stylingOptions.scatterSort ?? 'none',
                 scatterLabelPosition: stylingOptions.scatterLabelPosition ?? 'top',
-                areaOpacity: stylingOptions.areaOpacity ?? 50
+                areaOpacity: stylingOptions.areaOpacity ?? 50,
+                radarRadius: stylingOptions.radarRadius ?? prev.radarRadius,
+                radarNameGap: stylingOptions.radarNameGap ?? prev.radarNameGap,
+                radarSplitNumber: stylingOptions.radarSplitNumber ?? prev.radarSplitNumber,
+                radarShape: stylingOptions.radarShape ?? prev.radarShape,
+                radarShowArea: stylingOptions.radarShowArea ?? prev.radarShowArea,
+                radarAreaOpacity: stylingOptions.radarAreaOpacity ?? prev.radarAreaOpacity
             }));
         }
     }, [stylingOptions]);
@@ -492,7 +507,39 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
         if (scatterLabelPositionPickerRef.current) {
             scatterLabelPositionPickerRef.current.value = localOptions.scatterLabelPosition;
         }
-    }, [localOptions.scatterSort, localOptions.scatterLabelPosition]);
+        if (radarShapePickerRef.current) {
+            radarShapePickerRef.current.value = localOptions.radarShape;
+        }
+    }, [localOptions.scatterSort, localOptions.scatterLabelPosition, localOptions.radarShape]);
+
+    // Set up event listener for Radar Shape picker
+    useEffect(() => {
+        const radarShapePicker = radarShapePickerRef.current;
+        if (radarShapePicker) {
+            if (radarShapePicker.value !== localOptions.radarShape) {
+                radarShapePicker.value = localOptions.radarShape;
+            }
+            
+            const handleRadarShapeChangeEvent = (event) => {
+                const newShape = event.target.value;
+                setLocalOptions(prev => {
+                    const newOptions = {
+                        ...prev,
+                        radarShape: newShape
+                    };
+                    if (onStylingChange) {
+                        onStylingChange(newOptions);
+                    }
+                    return newOptions;
+                });
+            };
+            
+            radarShapePicker.addEventListener('change', handleRadarShapeChangeEvent);
+            return () => {
+                radarShapePicker.removeEventListener('change', handleRadarShapeChangeEvent);
+            };
+        }
+    }, [localOptions.radarShape, onStylingChange]);
 
     const handleToggle = (key) => {
         const newOptions = {
@@ -568,6 +615,29 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
         if (isNaN(value)) return;
         const clampedValue = Math.max(min, Math.min(max, value));
         handleChange(key, clampedValue);
+    };
+
+    // Custom handler for inner radius to ensure it doesn't exceed outer radius
+    const handleInnerRadiusChange = (event) => {
+        const value = parseFloat(event.target.value);
+        if (isNaN(value)) return;
+        const currentOuterRadius = localOptions.outerRadius;
+        const baseMin = 0;
+        const maxInnerRadius = currentOuterRadius - 1; // Ensure inner is always less than outer
+        const clampedValue = Math.max(baseMin, Math.min(maxInnerRadius, value));
+        handleChange('innerRadius', clampedValue);
+    };
+
+    // Custom handler for outer radius to ensure it's not less than inner radius
+    const handleOuterRadiusChange = (event) => {
+        const value = parseFloat(event.target.value);
+        if (isNaN(value)) return;
+        const currentInnerRadius = localOptions.innerRadius;
+        const baseMin = chartType === 'pie-nightingale' ? 60 : 30;
+        const baseMax = chartType === 'pie-nightingale' ? 120 : 100;
+        const minOuterRadius = Math.max(baseMin, currentInnerRadius + 1); // Ensure outer is always greater than inner
+        const clampedValue = Math.max(minOuterRadius, Math.min(baseMax, value));
+        handleChange('outerRadius', clampedValue);
     };
 
     const handlePickerChange = (key) => (event) => {
@@ -910,25 +980,25 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                     <div className="styling-section">
                         <h3 className="styling-section-title">
                             Inner Radius
-                            <RefreshIcon onClick={() => handleReset('innerRadius', chartType === 'pie-doughnut' ? 50 : chartType === 'pie-nightingale' ? 20 : 0)} />
+                            <RefreshIcon onClick={() => handleReset('innerRadius', chartType === 'pie-nightingale' ? 0 : 20)} />
                         </h3>
                         <div className="slider-group">
                             <input
                                 type="range"
-                                min={chartType === 'pie-nightingale' ? 5 : 0}
-                                max={chartType === 'pie-nightingale' ? 60 : 80}
+                                min={0}
+                                max={Math.max(0, localOptions.outerRadius - 1)}
                                 step={chartType === 'pie-nightingale' ? 1 : 5}
                                 value={localOptions.innerRadius}
-                                onChange={handleSliderChange('innerRadius', chartType === 'pie-nightingale' ? 5 : 0, chartType === 'pie-nightingale' ? 60 : 80)}
+                                onChange={handleInnerRadiusChange}
                                 className="styling-slider"
                             />
                             <input
                                 type="number"
                                 value={localOptions.innerRadius.toString()}
-                                min={chartType === 'pie-nightingale' ? 5 : 0}
-                                max={chartType === 'pie-nightingale' ? 60 : 80}
+                                min={0}
+                                max={Math.max(0, localOptions.outerRadius - 1)}
                                 step={chartType === 'pie-nightingale' ? 1 : 5}
-                                onChange={handleSliderChange('innerRadius', chartType === 'pie-nightingale' ? 5 : 0, chartType === 'pie-nightingale' ? 60 : 80)}
+                                onChange={handleInnerRadiusChange}
                                 className="styling-input"
                             />
                         </div>
@@ -937,25 +1007,25 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                     <div className="styling-section">
                         <h3 className="styling-section-title">
                             Outer Radius
-                            <RefreshIcon onClick={() => handleReset('outerRadius', chartType === 'pie-doughnut' ? 70 : chartType === 'pie-nightingale' ? 100 : 40)} />
+                            <RefreshIcon onClick={() => handleReset('outerRadius', chartType === 'pie-nightingale' ? 100 : 40)} />
                         </h3>
                         <div className="slider-group">
                             <input
                                 type="range"
-                                min={chartType === 'pie-nightingale' ? 60 : 30}
+                                min={Math.max(chartType === 'pie-nightingale' ? 60 : 30, localOptions.innerRadius + 1)}
                                 max={chartType === 'pie-nightingale' ? 120 : 100}
                                 step={chartType === 'pie-nightingale' ? 1 : 5}
                                 value={localOptions.outerRadius}
-                                onChange={handleSliderChange('outerRadius', chartType === 'pie-nightingale' ? 60 : 30, chartType === 'pie-nightingale' ? 120 : 100)}
+                                onChange={handleOuterRadiusChange}
                                 className="styling-slider"
                             />
                             <input
                                 type="number"
                                 value={localOptions.outerRadius.toString()}
-                                min={chartType === 'pie-nightingale' ? 60 : 30}
+                                min={Math.max(chartType === 'pie-nightingale' ? 60 : 30, localOptions.innerRadius + 1)}
                                 max={chartType === 'pie-nightingale' ? 120 : 100}
                                 step={chartType === 'pie-nightingale' ? 1 : 5}
-                                onChange={handleSliderChange('outerRadius', chartType === 'pie-nightingale' ? 60 : 30, chartType === 'pie-nightingale' ? 120 : 100)}
+                                onChange={handleOuterRadiusChange}
                                 className="styling-input"
                             />
                         </div>
@@ -1002,6 +1072,205 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                                     <span className="slider"></span>
                                 </label>
                             </div>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* Radar Chart Options */}
+            {isRadarChart && (
+                <>
+                    <div className="styling-section">
+                        <h3 className="styling-section-title">
+                            Radius
+                            <RefreshIcon onClick={() => handleReset('radarRadius', 70)} />
+                        </h3>
+                        <div className="slider-group">
+                            <input
+                                type="range"
+                                min={30}
+                                max={90}
+                                step={5}
+                                value={localOptions.radarRadius}
+                                onChange={handleSliderChange('radarRadius', 30, 90)}
+                                className="styling-slider"
+                            />
+                            <input
+                                type="number"
+                                value={localOptions.radarRadius.toString()}
+                                min={30}
+                                max={90}
+                                step={5}
+                                onChange={handleSliderChange('radarRadius', 30, 90)}
+                                className="styling-input"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="styling-section">
+                        <h3 className="styling-section-title">
+                            Name Gap
+                            <RefreshIcon onClick={() => handleReset('radarNameGap', 5)} />
+                        </h3>
+                        <div className="slider-group">
+                            <input
+                                type="range"
+                                min={0}
+                                max={20}
+                                step={1}
+                                value={localOptions.radarNameGap}
+                                onChange={handleSliderChange('radarNameGap', 0, 20)}
+                                className="styling-slider"
+                            />
+                            <input
+                                type="number"
+                                value={localOptions.radarNameGap.toString()}
+                                min={0}
+                                max={20}
+                                step={1}
+                                onChange={handleSliderChange('radarNameGap', 0, 20)}
+                                className="styling-input"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="styling-section">
+                        <h3 className="styling-section-title">
+                            Split Number
+                            <RefreshIcon onClick={() => handleReset('radarSplitNumber', 5)} />
+                        </h3>
+                        <div className="slider-group">
+                            <input
+                                type="range"
+                                min={3}
+                                max={10}
+                                step={1}
+                                value={localOptions.radarSplitNumber}
+                                onChange={handleSliderChange('radarSplitNumber', 3, 10)}
+                                className="styling-slider"
+                            />
+                            <input
+                                type="number"
+                                value={localOptions.radarSplitNumber.toString()}
+                                min={3}
+                                max={10}
+                                step={1}
+                                onChange={handleSliderChange('radarSplitNumber', 3, 10)}
+                                className="styling-input"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="styling-section">
+                        <h3 className="styling-section-title">
+                            Shape
+                            <RefreshIcon onClick={() => handleReset('radarShape', 'polygon')} />
+                        </h3>
+                        <div className="picker-group">
+                            <sp-picker
+                                ref={radarShapePickerRef}
+                                label="Shape"
+                                value={localOptions.radarShape}
+                            >
+                                <sp-menu-item value="polygon">Polygon</sp-menu-item>
+                                <sp-menu-item value="circle">Circle</sp-menu-item>
+                            </sp-picker>
+                        </div>
+                    </div>
+
+                    <div className="styling-section">
+                        <h3 className="styling-section-title">
+                            Show Data Points
+                            <RefreshIcon onClick={() => handleReset('showDataPoints', false)} />
+                        </h3>
+                        <div className="toggle-group">
+                            <div className="toggle-item">
+                                <label className="toggle-label">Data Points</label>
+                                <label className="switch">
+                                    <input
+                                        type="checkbox"
+                                        checked={localOptions.showDataPoints}
+                                        onChange={() => handleToggle('showDataPoints')}
+                                    />
+                                    <span className="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {localOptions.showDataPoints && (
+                        <div className="styling-section">
+                            <h3 className="styling-section-title">
+                                Point Size
+                                <RefreshIcon onClick={() => handleReset('pointSize', 8)} />
+                            </h3>
+                            <div className="slider-group">
+                                <input
+                                    type="range"
+                                    min={5}
+                                    max={20}
+                                    step={1}
+                                    value={localOptions.pointSize}
+                                    onChange={handleSliderChange('pointSize', 5, 20)}
+                                    className="styling-slider"
+                                />
+                                <input
+                                    type="number"
+                                    value={localOptions.pointSize.toString()}
+                                    min={5}
+                                    max={20}
+                                    step={1}
+                                    onChange={handleSliderChange('pointSize', 5, 20)}
+                                    className="styling-input"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="styling-section">
+                        <h3 className="styling-section-title">
+                            Show Area
+                            <RefreshIcon onClick={() => handleReset('radarShowArea', true)} />
+                        </h3>
+                        <div className="toggle-group">
+                            <div className="toggle-item">
+                                <label className="toggle-label">Area</label>
+                                <label className="switch">
+                                    <input
+                                        type="checkbox"
+                                        checked={localOptions.radarShowArea}
+                                        onChange={() => handleToggle('radarShowArea')}
+                                    />
+                                    <span className="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="styling-section">
+                        <h3 className="styling-section-title">
+                            Area Opacity
+                            <RefreshIcon onClick={() => handleReset('radarAreaOpacity', 30)} />
+                        </h3>
+                        <div className="slider-group">
+                            <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                step={5}
+                                value={localOptions.radarAreaOpacity}
+                                onChange={handleSliderChange('radarAreaOpacity', 0, 100)}
+                                className="styling-slider"
+                            />
+                            <input
+                                type="number"
+                                value={localOptions.radarAreaOpacity.toString()}
+                                min={0}
+                                max={100}
+                                step={5}
+                                onChange={handleSliderChange('radarAreaOpacity', 0, 100)}
+                                className="styling-input"
+                            />
                         </div>
                     </div>
                 </>

@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import ChartPicker from './ChartPicker';
 import ChartPreview from './ChartPreview';
 import ChartActions from './ChartActions';
+import { themeColors } from './ChartOptionGenerator';
 import './Charts.css';
 
 const Charts = React.memo(({ sandboxProxy, selectedTheme = 'light' }) => {
@@ -51,11 +52,29 @@ const Charts = React.memo(({ sandboxProxy, selectedTheme = 'light' }) => {
                 throw new Error("Failed to get ECharts instance");
             }
 
+            // Get current chart option to check backgroundColor
+            const currentOption = echartsInstance.getOption();
+            
+            // Determine background color: transparent ONLY for default theme, otherwise use theme's background color
+            // Use chart option's backgroundColor as source of truth since ChartPreview sets it correctly based on theme
+            const chartOptionBackgroundColor = currentOption.backgroundColor;
+            let exportBackgroundColor;
+            
+            // Default theme uses '#ffffff' in the chart option, but we want transparent for export
+            // For all other themes, use the chart option's backgroundColor (which is already correct)
+            if (chartOptionBackgroundColor === '#ffffff') {
+                // This is the default theme - use transparent for export
+                exportBackgroundColor = 'transparent';
+            } else {
+                // For all other themes, use the chart option's backgroundColor (already set correctly by ChartPreview)
+                exportBackgroundColor = chartOptionBackgroundColor || '#ffffff';
+            }
+
             // Export chart as data URL (PNG format)
             const dataUrl = echartsInstance.getDataURL({
                 type: 'png',
                 pixelRatio: 2,
-                backgroundColor: '#fff'
+                backgroundColor: exportBackgroundColor
             });
 
             console.log("🟢 [Chart] Chart exported to data URL");
@@ -79,7 +98,7 @@ const Charts = React.memo(({ sandboxProxy, selectedTheme = 'light' }) => {
         } finally {
             setIsAdding(false);
         }
-    }, [sandboxProxy]);
+    }, [sandboxProxy, selectedTheme]);
 
     return (
         <div className="charts-container">

@@ -7,10 +7,11 @@ import UploadModal from '../Charts/UploadModal';
 import LoginSignupModal from '../Charts/LoginSignupModal';
 import ChartStylingOptions from '../Charts/ChartStylingOptions';
 import { revalidateSubscription } from '../../services/subscriptionValidationService';
+import { themeColors } from '../Charts/ChartOptionGenerator';
 import './ChartGenerator.css';
 
 // Define pro-only charts and themes
-const PRO_ONLY_CHARTS = ['funnel', 'mixed', 'pie-doughnut', 'pie-nightingale', 'scatter'];
+const PRO_ONLY_CHARTS = ['funnel', 'mixed', 'radar', 'pie-nightingale', 'scatter'];
 const PRO_ONLY_THEMES = ['vintage', 'westeros', 'essos', 'wonderland', 'walden', 'chalk', 'infographic'];
 
 const ChartGenerator = ({ 
@@ -28,11 +29,40 @@ const ChartGenerator = ({
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isLoginSignupModalOpen, setIsLoginSignupModalOpen] = useState(false);
     const [importedData, setImportedData] = useState(null);
+    const [selectedColumnIndex, setSelectedColumnIndex] = useState(0);
 
     // Debug: Log when importedData changes
     React.useEffect(() => {
         console.log('🟢 [ChartGenerator] importedData changed:', importedData);
     }, [importedData]);
+
+    // Calculate available columns count
+    const availableColumns = useMemo(() => {
+        if (!importedData) return 0;
+        const isMultipleSeries = Array.isArray(importedData?.values?.[0]) && typeof importedData.values[0][0] === 'number';
+        return isMultipleSeries ? importedData.values.length : 1;
+    }, [importedData]);
+
+    // Determine which charts need column navigation (single-series charts)
+    // Mixed chart also needs navigation to select which columns to use
+    const needsColumnNavigation = useMemo(() => {
+        const multiSeriesCharts = ['line', 'area', 'scatter', 'radar'];
+        return !multiSeriesCharts.includes(selectedChart) && availableColumns > 1;
+    }, [selectedChart, availableColumns]);
+
+    // Reset selected column when chart type changes
+    React.useEffect(() => {
+        setSelectedColumnIndex(0);
+    }, [selectedChart]);
+
+    // Handle column navigation
+    const handlePreviousColumn = useCallback(() => {
+        setSelectedColumnIndex(prev => (prev > 0 ? prev - 1 : availableColumns - 1));
+    }, [availableColumns]);
+
+    const handleNextColumn = useCallback(() => {
+        setSelectedColumnIndex(prev => (prev < availableColumns - 1 ? prev + 1 : 0));
+    }, [availableColumns]);
     const [stylingOptions, setStylingOptions] = useState({
         // Common options
         labelVisible: true,
@@ -54,7 +84,7 @@ const ChartGenerator = ({
         barBorderRadius: 4,
         barSpacing: 0,
         // Pie options
-        innerRadius: 0,
+        innerRadius: 20, // Default inner radius for pie charts (20% for regular pie)
         outerRadius: 40,
         labelLineLength: 15,
         showLegend: true,
@@ -70,7 +100,14 @@ const ChartGenerator = ({
         scatterSort: 'none',
         scatterLabelPosition: 'top',
         // Area options
-        areaOpacity: 50
+        areaOpacity: 50,
+        // Radar options
+        radarRadius: 70,
+        radarNameGap: 5,
+        radarSplitNumber: 5,
+        radarShape: 'polygon',
+        radarShowArea: true,
+        radarAreaOpacity: 30
     });
     const chartRef = useRef(null);
 
@@ -95,6 +132,22 @@ const ChartGenerator = ({
         console.log('🟢 [ChartGenerator] Chart change requested:', value);
         setSelectedChart(value);
     }, []);
+
+    // Update showDataPoints default when chart type changes to line/area/radar
+    React.useEffect(() => {
+        if (selectedChart === 'line' || selectedChart === 'area' || selectedChart === 'radar') {
+            setStylingOptions(prev => {
+                if (prev.showDataPoints === false) {
+                    console.log('🟢 [ChartGenerator] Updating showDataPoints to true for chart type:', selectedChart);
+                    return {
+                        ...prev,
+                        showDataPoints: true
+                    };
+                }
+                return prev;
+            });
+        }
+    }, [selectedChart]);
 
     const handleThemeChange = useCallback((theme) => {
         console.log('🟢 [ChartGenerator] Theme change requested:', theme);
@@ -228,11 +281,51 @@ const ChartGenerator = ({
                 legendTextStyleFontStyle: currentOption.legend?.[0]?.textStyle?.fontStyle
             });
 
+            // For single-series charts with multiple columns, ensure we export the selected column
+            const isMultipleSeries = Array.isArray(importedData?.values?.[0]) && typeof importedData.values[0][0] === 'number';
+            if (needsColumnNavigation && isMultipleSeries && currentOption.series) {
+                // Modify the option to show only selected column before export
+                const modifiedSeries = currentOption.series.map((s, idx) => {
+                    if (idx === selectedColumnIndex) {
+                        return s; // Keep selected series
+                    } else {
+                        // Hide other series by setting data to empty array
+                        return {
+                            ...s,
+                            data: []
+                        };
+                    }
+                });
+                
+                // Temporarily update the chart to show only selected column
+                echartsInstance.setOption({
+                    series: modifiedSeries
+                }, { notMerge: false });
+                
+                // Wait a bit for chart to update
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            // Determine background color: transparent ONLY for default theme, otherwise use theme's background color
+            // Use chart option's backgroundColor as source of truth since ChartPreview sets it correctly based on theme
+            const chartOptionBackgroundColor = currentOption.backgroundColor;
+            let exportBackgroundColor;
+            
+            // Default theme uses '#ffffff' in the chart option, but we want transparent for export
+            // For all other themes, use the chart option's backgroundColor (which is already correct)
+            if (chartOptionBackgroundColor === '#ffffff') {
+                // This is the default theme - use transparent for export
+                exportBackgroundColor = 'transparent';
+            } else {
+                // For all other themes, use the chart option's backgroundColor (already set correctly by ChartPreview)
+                exportBackgroundColor = chartOptionBackgroundColor || '#ffffff';
+            }
+
             // Export chart as data URL (PNG format) with high quality
             const dataUrl = echartsInstance.getDataURL({
                 type: 'png',
                 pixelRatio: 4,
-                backgroundColor: '#fff'
+                backgroundColor: exportBackgroundColor
             });
 
             console.log("🟢 [Chart] Chart exported to data URL (with styling:", {
@@ -262,7 +355,7 @@ const ChartGenerator = ({
         } finally {
             setIsAdding(false);
         }
-    }, [sandboxProxy, stylingOptions]);
+    }, [sandboxProxy, stylingOptions, selectedTheme, needsColumnNavigation, selectedColumnIndex, importedData]);
 
     // Handle API call after form submission
     const handleLoginSignupSubmit = useCallback(async (payload) => {
@@ -407,12 +500,17 @@ const ChartGenerator = ({
                     onThemeChange={handleThemeChange}
                 />
             </div>
-            <ChartPreview 
+            <ChartPreview
                 chartType={selectedChart}
                 theme={selectedTheme}
                 onChartRef={handleChartRef}
                 importedData={importedData}
                 stylingOptions={stylingOptions}
+                selectedColumnIndex={selectedColumnIndex}
+                needsColumnNavigation={needsColumnNavigation}
+                availableColumns={availableColumns}
+                onPreviousColumn={handlePreviousColumn}
+                onNextColumn={handleNextColumn}
             />
             <ChartActions 
                 sandboxProxy={sandboxProxy}

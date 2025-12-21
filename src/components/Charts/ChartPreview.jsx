@@ -1,7 +1,19 @@
 import React, { useMemo, useRef } from 'react';
 import ChartRenderer from './ChartRenderer';
+import './ChartPreview.css';
 
-const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptions }) => {
+const ChartPreview = ({ 
+    chartType, 
+    theme, 
+    onChartRef, 
+    importedData, 
+    stylingOptions,
+    selectedColumnIndex = 0,
+    needsColumnNavigation = false,
+    availableColumns = 1,
+    onPreviousColumn,
+    onNextColumn
+}) => {
     const chartRef = useRef(null);
 
     // Log when ChartPreview component renders
@@ -137,12 +149,21 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
             
             console.log('🔵 [ChartPreview] getTextStyle:', {
                 isValue,
+                chartType,
+                visibility,
+                valueVisible: stylingOptions.valueVisible,
+                labelVisible: stylingOptions.labelVisible,
+                visibilityCheck: visibility !== false,
+                defaultStyleShow: defaultStyle.show,
+                finalShow: result.show,
                 stylingOptions_fontFamily: stylingOptions.fontFamily,
                 stylingOptions_fontStyle: stylingOptions.fontStyle,
                 result_fontFamily: result.fontFamily,
                 result_fontStyle: result.fontStyle,
                 result_fontWeight: result.fontWeight,
-                result_fontSize: result.fontSize
+                result_fontSize: result.fontSize,
+                result_show: result.show,
+                fullResult: result
             });
 
             return result;
@@ -198,7 +219,37 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
 
         // Use imported data if available, otherwise use dummy data
         const commonData = importedData?.labels || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const commonValues = importedData?.values || [120, 200, 150, 80, 70, 110, 130];
+        
+        // Handle both single array and array of arrays (multiple series)
+        const isMultipleSeries = Array.isArray(importedData?.values?.[0]) && typeof importedData.values[0][0] === 'number';
+        const multiSeriesCharts = ['line', 'area', 'scatter', 'radar'];
+        const shouldUseAllSeries = multiSeriesCharts.includes(chartType);
+        
+        const commonValues = isMultipleSeries 
+          ? (shouldUseAllSeries ? importedData.values[0] : importedData.values[selectedColumnIndex] || importedData.values[0])
+          : (importedData?.values || [120, 200, 150, 80, 70, 110, 130]);
+        
+        // For mixed chart, use selected column for bar, next column for line
+        const getMixedChartValues = () => {
+            if (!isMultipleSeries) {
+                return { 
+                    barValues: commonValues, 
+                    lineValues: commonValues.map(v => v * 1.2),
+                    barName: 'Sales',
+                    lineName: 'Target'
+                };
+            }
+            const barValues = importedData.values[selectedColumnIndex] || importedData.values[0];
+            const nextIndex = (selectedColumnIndex + 1) % importedData.values.length;
+            const lineValues = importedData.values[nextIndex] || importedData.values[0];
+            const barName = seriesNames[selectedColumnIndex] || `Series ${selectedColumnIndex + 1}`;
+            const lineName = seriesNames[nextIndex] || `Series ${nextIndex + 1}`;
+            return { barValues, lineValues, barName, lineName };
+        };
+        const allSeriesValues = isMultipleSeries 
+          ? importedData.values  // Array of arrays for multiple series
+          : [importedData?.values || [120, 200, 150, 80, 70, 110, 130]];
+        const seriesNames = importedData?.seriesNames || ['Sales', 'Target'];
 
         switch (chartType) {
             case 'bar':
@@ -279,6 +330,10 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                         ...baseConfig.tooltip,
                         trigger: 'axis'
                     },
+                    legend: isMultipleSeries && shouldUseAllSeries ? {
+                        data: seriesNames,
+                        textStyle: getTextStyle()
+                    } : undefined,
                     xAxis: {
                         type: 'category',
                         data: commonData,
@@ -314,8 +369,37 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                             }
                         }
                     },
-                    series: [
-                        {
+                    series: isMultipleSeries && shouldUseAllSeries 
+                        ? allSeriesValues.map((seriesValues, index) => ({
+                            name: seriesNames[index] || `Series ${index + 1}`,
+                            type: 'line',
+                            data: seriesValues,
+                            smooth: stylingOptions?.lineSmooth ?? true,
+                            itemStyle: {
+                                color: currentTheme.colors[index % currentTheme.colors.length]
+                            },
+                            lineStyle: {
+                                width: stylingOptions?.lineWidth ?? 3,
+                                color: currentTheme.colors[index % currentTheme.colors.length]
+                            },
+                            showSymbol: stylingOptions?.showDataPoints ?? false,
+                            symbolSize: stylingOptions?.showDataPoints ? (stylingOptions?.pointSize ?? 8) : 0,
+                            label: (() => {
+                                const valueStyle = getValueStyle({
+                                    show: true,
+                                    position: 'top',
+                                    color: currentTheme.textColor
+                                });
+                                if (valueStyle.show === false) {
+                                    return { show: false };
+                                }
+                                return {
+                                    ...valueStyle,
+                                    formatter: '{c}'
+                                };
+                            })()
+                        }))
+                        : [{
                             name: 'Sales',
                             type: 'line',
                             data: commonValues,
@@ -334,7 +418,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                                     position: 'top',
                                     color: currentTheme.textColor
                                 });
-                                // If show is false, return false to hide the label completely
                                 if (valueStyle.show === false) {
                                     return { show: false };
                                 }
@@ -343,8 +426,7 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                                     formatter: '{c}'
                                 };
                             })()
-                        }
-                    ]
+                        }]
                 };
 
             case 'pie':
@@ -426,6 +508,10 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                         ...baseConfig.tooltip,
                         trigger: 'axis'
                     },
+                    legend: isMultipleSeries && shouldUseAllSeries ? {
+                        data: seriesNames,
+                        textStyle: getTextStyle()
+                    } : undefined,
                     xAxis: {
                         type: 'category',
                         data: commonData,
@@ -462,8 +548,40 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                             }
                         }
                     },
-                    series: [
-                        {
+                    series: isMultipleSeries && shouldUseAllSeries
+                        ? allSeriesValues.map((seriesValues, index) => ({
+                            name: seriesNames[index] || `Series ${index + 1}`,
+                            type: 'line',
+                            data: seriesValues,
+                            smooth: stylingOptions?.lineSmooth ?? true,
+                            areaStyle: {
+                                opacity: (stylingOptions?.areaOpacity ?? 50) / 100
+                            },
+                            itemStyle: {
+                                color: currentTheme.colors[index % currentTheme.colors.length]
+                            },
+                            lineStyle: {
+                                width: stylingOptions?.lineWidth ?? 2,
+                                color: currentTheme.colors[index % currentTheme.colors.length]
+                            },
+                            showSymbol: stylingOptions?.showDataPoints ?? false,
+                            symbolSize: stylingOptions?.showDataPoints ? (stylingOptions?.pointSize ?? 8) : 0,
+                            label: (() => {
+                                const valueStyle = getValueStyle({
+                                    show: true,
+                                    position: 'top',
+                                    color: currentTheme.textColor
+                                });
+                                if (valueStyle.show === false) {
+                                    return { show: false };
+                                }
+                                return {
+                                    ...valueStyle,
+                                    formatter: '{c}'
+                                };
+                            })()
+                        }))
+                        : [{
                             name: 'Sales',
                             type: 'line',
                             data: commonValues,
@@ -485,7 +603,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                                     position: 'top',
                                     color: currentTheme.textColor
                                 });
-                                // If show is false, return false to hide the label completely
                                 if (valueStyle.show === false) {
                                     return { show: false };
                                 }
@@ -494,8 +611,7 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                                     formatter: '{c}'
                                 };
                             })()
-                        }
-                    ]
+                        }]
                 };
 
             case 'scatter':
@@ -552,8 +668,53 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                             }
                         }
                     },
-                    series: [
-                        {
+                    legend: isMultipleSeries && shouldUseAllSeries ? {
+                        data: seriesNames,
+                        textStyle: getTextStyle()
+                    } : undefined,
+                    series: isMultipleSeries && shouldUseAllSeries
+                        ? allSeriesValues.map((seriesValues, index) => ({
+                            name: seriesNames[index] || `Series ${index + 1}`,
+                            type: 'scatter',
+                            data: (() => {
+                                let data = seriesValues.map((val, idx) => ({
+                                    value: [idx * 20, val],
+                                    name: commonData[idx]
+                                }));
+                                if (stylingOptions?.scatterSort === 'ascending') {
+                                    data.sort((a, b) => a.value[1] - b.value[1]);
+                                } else if (stylingOptions?.scatterSort === 'descending') {
+                                    data.sort((a, b) => b.value[1] - a.value[1]);
+                                }
+                                return data;
+                            })(),
+                            symbolSize: stylingOptions?.scatterPointSize ?? 20,
+                            symbol: stylingOptions?.scatterPointShape ?? 'circle',
+                            itemStyle: {
+                                color: currentTheme.colors[index % currentTheme.colors.length]
+                            },
+                            label: {
+                                ...getLabelStyle({
+                                    show: stylingOptions?.scatterShowLabels ?? true,
+                                    formatter: '{b}',
+                                    position: stylingOptions?.scatterLabelPosition ?? 'top',
+                                    fontSize: stylingOptions?.fontSize ? stylingOptions.fontSize - 2 : 10,
+                                    color: currentTheme.textColor
+                                }),
+                                formatter: (params) => {
+                                    let result = '';
+                                    if (stylingOptions?.labelVisible !== false) {
+                                        result += params.name;
+                                    }
+                                    if (stylingOptions?.valueVisible !== false) {
+                                        if (result) result += '\n';
+                                        result += `(${params.value[0]}, ${params.value[1]})`;
+                                    }
+                                    return result || '';
+                                }
+                            }
+                        }))
+                        : [{
                             name: 'Sales',
                             type: 'scatter',
                             data: (() => {
@@ -561,7 +722,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                                     value: [index * 20, val],
                                     name: commonData[index]
                                 }));
-                                // Apply sort order
                                 if (stylingOptions?.scatterSort === 'ascending') {
                                     data.sort((a, b) => a.value[1] - b.value[1]);
                                 } else if (stylingOptions?.scatterSort === 'descending') {
@@ -594,8 +754,7 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                                     return result || '';
                                 }
                             }
-                        }
-                    ]
+                        }]
                 };
 
             case 'bar-horizontal':
@@ -673,78 +832,6 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                     ]
                 };
 
-            case 'pie-doughnut':
-                return {
-                    ...baseConfig,
-                    tooltip: {
-                        ...baseConfig.tooltip,
-                        trigger: 'item',
-                        formatter: '{a} <br/>{b}: {c} ({d}%)'
-                    },
-                    legend: {
-                        data: commonData,
-                        bottom: 0,
-                        show: stylingOptions?.showLegend !== false,
-                        textStyle: getLabelStyle({
-                            color: currentTheme.textColor
-                        })
-                    },
-                    series: [
-                        {
-                            name: 'Sales',
-                            type: 'pie',
-                            radius: [
-                                `${stylingOptions?.innerRadius ?? 10}%`,
-                                `${stylingOptions?.outerRadius ?? 50}%`
-                            ],
-                            avoidLabelOverlap: false,
-                            itemStyle: {
-                                borderRadius: 8,
-                                borderColor: currentTheme.backgroundColor,
-                                borderWidth: 2
-                            },
-                            label: {
-                                ...getLabelStyle({
-                                    show: true,
-                                    color: currentTheme.textColor
-                                }),
-                                formatter: (params) => {
-                                    let result = '';
-                                    if (stylingOptions?.labelVisible !== false) {
-                                        result += params.name;
-                                    }
-                                    if (stylingOptions?.valueVisible !== false) {
-                                        if (result) result += '\n';
-                                        result += params.percent + '%';
-                                    }
-                                    return result || '';
-                                }
-                            },
-                            labelLine: {
-                                length: stylingOptions?.labelLineLength ?? 15,
-                                length2: Math.max(3, Math.floor((stylingOptions?.labelLineLength ?? 15) / 3)),
-                                lineStyle: {
-                                    color: currentTheme.textColor,
-                                    width: 1
-                                }
-                            },
-                            emphasis: {
-                                label: getLabelStyle({
-                                    show: true,
-                                    fontSize: stylingOptions?.fontSize ? stylingOptions.fontSize + 2 : 14,
-                                    fontWeight: 'bold',
-                                    color: currentTheme.textColor
-                                })
-                            },
-                            data: commonData.map((day, index) => ({
-                                value: commonValues[index],
-                                name: day
-                            })),
-                            color: currentTheme.colors
-                        }
-                    ]
-                };
-
             case 'pie-nightingale':
                 return {
                     ...baseConfig,
@@ -766,7 +853,7 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                             name: 'Sales',
                             type: 'pie',
                             radius: [
-                                stylingOptions?.innerRadius ?? 5,
+                                stylingOptions?.innerRadius ?? 0,
                                 stylingOptions?.outerRadius ?? 60
                             ],
                             center: ['50%', '50%'],
@@ -890,6 +977,115 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                     ]
                 };
 
+            case 'radar':
+                const radarShowArea = stylingOptions?.radarShowArea !== false;
+                
+                console.log('🔴 [ChartPreview] Radar chart configuration:', {
+                    showDataPoints: stylingOptions?.showDataPoints,
+                    valueVisible: stylingOptions?.valueVisible,
+                    pointSize: stylingOptions?.pointSize,
+                    radarShowArea: stylingOptions?.radarShowArea,
+                    radarRadius: stylingOptions?.radarRadius,
+                    radarShape: stylingOptions?.radarShape,
+                    fullStylingOptions: stylingOptions
+                });
+                
+                // Values should show based on valueVisible toggle, not just showDataPoints
+                // Data points control symbols, values control labels
+                const shouldShowValues = stylingOptions?.valueVisible !== false;
+                const labelConfig = shouldShowValues ? getValueStyle({
+                    show: true,
+                    position: 'top',
+                    color: currentTheme.textColor,
+                    formatter: '{c}'
+                }) : {
+                    show: false
+                };
+                
+                console.log('🔴 [ChartPreview] Radar label configuration:', {
+                    showDataPoints: stylingOptions?.showDataPoints,
+                    valueVisible: stylingOptions?.valueVisible,
+                    shouldShowValues,
+                    labelConfig,
+                    labelShow: labelConfig.show,
+                    labelFormatter: labelConfig.formatter
+                });
+                
+                return {
+                    ...baseConfig,
+                    tooltip: {
+                        ...baseConfig.tooltip,
+                        trigger: 'item'
+                    },
+                    radar: {
+                        indicator: commonData.map((label, index) => {
+                            // Calculate max across all series if multiple series exist
+                            const maxValue = isMultipleSeries 
+                                ? Math.max(...allSeriesValues.map(series => Math.max(...series))) * 1.2
+                                : Math.max(...commonValues) * 1.2;
+                            return {
+                                name: label,
+                                max: maxValue
+                            };
+                        }),
+                        center: ['50%', '55%'],
+                        radius: `${stylingOptions?.radarRadius ?? 70}%`,
+                        nameGap: stylingOptions?.radarNameGap ?? 5,
+                        splitNumber: stylingOptions?.radarSplitNumber ?? 5,
+                        shape: stylingOptions?.radarShape || 'polygon',
+                        name: {
+                            ...getLabelStyle({
+                                color: currentTheme.textColor,
+                                fontSize: stylingOptions?.fontSize ?? 12
+                            })
+                        },
+                        axisLine: {
+                            lineStyle: {
+                                color: currentTheme.gridColor
+                            }
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                color: currentTheme.gridColor
+                            }
+                        },
+                        splitArea: {
+                            show: radarShowArea,
+                            areaStyle: {
+                                color: [
+                                    currentTheme.gridColor + '20',
+                                    currentTheme.gridColor + '10'
+                                ]
+                            }
+                        }
+                    },
+                    series: [
+                        {
+                            name: isMultipleSeries && seriesNames[0] ? seriesNames[0] : 'Sales',
+                            type: 'radar',
+                            data: (isMultipleSeries ? allSeriesValues : [commonValues]).map((seriesValues, seriesIndex) => ({
+                                value: seriesValues,
+                                name: isMultipleSeries && seriesNames[seriesIndex] ? seriesNames[seriesIndex] : 'Sales',
+                                areaStyle: radarShowArea ? {
+                                    opacity: (stylingOptions?.radarAreaOpacity ?? 30) / 100
+                                } : undefined,
+                                lineStyle: {
+                                    width: stylingOptions?.lineWidth ?? 3,
+                                    color: currentTheme.colors[seriesIndex % currentTheme.colors.length]
+                                },
+                                itemStyle: {
+                                    color: currentTheme.colors[seriesIndex % currentTheme.colors.length]
+                                },
+                                symbol: stylingOptions?.showDataPoints ? 'circle' : 'none',
+                                symbolSize: stylingOptions?.showDataPoints ? (stylingOptions?.pointSize ?? 8) : 0,
+                                label: shouldShowValues ? labelConfig : {
+                                    show: false
+                                }
+                            }))
+                        }
+                    ]
+                };
+
             case 'mixed':
                 return {
                     ...baseConfig,
@@ -917,7 +1113,10 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                     yAxis: [
                         {
                             type: 'value',
-                            name: 'Sales',
+                            name: (() => {
+                                const mixedValues = getMixedChartValues();
+                                return mixedValues.barName;
+                            })(),
                             position: 'left',
                             axisLabel: getLabelStyle({
                                 color: currentTheme.textColor,
@@ -936,7 +1135,13 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                         },
                         {
                             type: 'value',
-                            name: 'Target',
+                            name: (() => {
+                                if (isMultipleSeries) {
+                                    const mixedValues = getMixedChartValues();
+                                    return mixedValues.lineName;
+                                }
+                                return 'Target';
+                            })(),
                             position: 'right',
                             axisLabel: getLabelStyle({
                                 color: currentTheme.textColor,
@@ -952,47 +1157,50 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                             }
                         }
                     ],
-                    series: [
-                        {
-                            name: 'Sales',
-                            type: 'bar',
-                            data: commonValues,
-                            barWidth: `${stylingOptions?.barWidth ?? 60}%`,
-                            barCategoryGap: getBarCategoryGap(),
-                            barGap: '0%',
-                            itemStyle: {
-                                color: currentTheme.colors[0],
-                                borderRadius: [
-                                    stylingOptions?.barBorderRadius ?? 4,
-                                    stylingOptions?.barBorderRadius ?? 4,
-                                    0,
-                                    0
-                                ]
+                    series: (() => {
+                        const mixedValues = getMixedChartValues();
+                        return [
+                            {
+                                name: mixedValues.barName,
+                                type: 'bar',
+                                data: mixedValues.barValues,
+                                barWidth: `${stylingOptions?.barWidth ?? 60}%`,
+                                barCategoryGap: getBarCategoryGap(),
+                                barGap: '0%',
+                                itemStyle: {
+                                    color: currentTheme.colors[0],
+                                    borderRadius: [
+                                        stylingOptions?.barBorderRadius ?? 4,
+                                        stylingOptions?.barBorderRadius ?? 4,
+                                        0,
+                                        0
+                                    ]
+                                },
+                                label: getValueStyle({
+                                    show: true,
+                                    position: 'top',
+                                    fontSize: stylingOptions?.fontSize ?? 12,
+                                    color: currentTheme.textColor
+                                })
                             },
-                            label: getValueStyle({
-                                show: true,
-                                position: 'top',
-                                fontSize: stylingOptions?.fontSize ?? 12,
-                                color: currentTheme.textColor
-                            })
-                        },
-                        {
-                            name: 'Target',
-                            type: 'line',
-                            yAxisIndex: 1,
-                            data: commonValues.map(v => v * 1.2),
-                            itemStyle: {
-                                color: currentTheme.colors[1]
-                            },
-                            lineStyle: {
-                                width: stylingOptions?.lineWidth ?? 3
-                            },
-                            smooth: stylingOptions?.lineSmooth ?? true,
-                            showSymbol: stylingOptions?.showDataPoints ?? false,
-                            symbol: 'circle',
-                            symbolSize: stylingOptions?.showDataPoints ? (stylingOptions?.pointSize ?? 8) : 0
-                        }
-                    ]
+                            {
+                                name: mixedValues.lineName,
+                                type: 'line',
+                                yAxisIndex: 1,
+                                data: mixedValues.lineValues,
+                                itemStyle: {
+                                    color: currentTheme.colors[1]
+                                },
+                                lineStyle: {
+                                    width: stylingOptions?.lineWidth ?? 3
+                                },
+                                smooth: stylingOptions?.lineSmooth ?? true,
+                                showSymbol: stylingOptions?.showDataPoints ?? false,
+                                symbol: 'circle',
+                                symbolSize: stylingOptions?.showDataPoints ? (stylingOptions?.pointSize ?? 8) : 0
+                            }
+                        ];
+                    })()
                 };
 
             default:
@@ -1043,20 +1251,44 @@ const ChartPreview = ({ chartType, theme, onChartRef, importedData, stylingOptio
                 ref={chartRef}
                 option={chartOption}
                 theme={theme}
-                style={{ height: '300px', width: '100%' }}
+                style={{ height: '260px', width: '100%' }}
             />
+            {needsColumnNavigation && (
+                <div className="chart-column-navigation">
+                    <button 
+                        className="column-nav-btn prev-btn" 
+                        onClick={onPreviousColumn}
+                        disabled={availableColumns <= 1}
+                        aria-label="Previous series"
+                    >
+                        &lt;
+                    </button>
+                    <span className="column-indicator">
+                        Series {selectedColumnIndex + 1} of {availableColumns}
+                    </span>
+                    <button 
+                        className="column-nav-btn next-btn" 
+                        onClick={onNextColumn}
+                        disabled={availableColumns <= 1}
+                        aria-label="Next series"
+                    >
+                        &gt;
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
 
 ChartPreview.displayName = 'ChartPreview';
 
-// Custom comparison function - only re-render if chartType, theme, importedData, or stylingOptions change
+// Custom comparison function - only re-render if chartType, theme, importedData, stylingOptions, or selectedColumnIndex change
 export default React.memo(ChartPreview, (prevProps, nextProps) => {
     const chartTypeSame = prevProps.chartType === nextProps.chartType;
     const themeSame = prevProps.theme === nextProps.theme;
     const importedDataSame = JSON.stringify(prevProps.importedData) === JSON.stringify(nextProps.importedData);
     const stylingOptionsSame = JSON.stringify(prevProps.stylingOptions) === JSON.stringify(nextProps.stylingOptions);
-    return chartTypeSame && themeSame && importedDataSame && stylingOptionsSame;
+    const selectedColumnSame = prevProps.selectedColumnIndex === nextProps.selectedColumnIndex;
+    return chartTypeSame && themeSame && importedDataSame && stylingOptionsSame && selectedColumnSame;
 });
 

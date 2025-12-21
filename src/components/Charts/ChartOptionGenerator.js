@@ -184,7 +184,6 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
       };
 
     case 'pie':
-    case 'pie-doughnut':
       return {
         ...baseConfig,
         tooltip: {
@@ -201,9 +200,7 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
         series: [{
           name: 'Data',
           type: 'pie',
-          radius: chartType === 'pie-doughnut' 
-            ? [`${stylingOptions?.innerRadius ?? 10}%`, `${stylingOptions?.outerRadius ?? 50}%`]
-            : `${stylingOptions?.outerRadius ?? 50}%`,
+          radius: `${stylingOptions?.outerRadius ?? 50}%`,
           data: labels.map((label, index) => ({
             value: values[index],
             name: label
@@ -331,6 +328,82 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
         }]
       };
 
+    case 'radar':
+      const radarShowArea = stylingOptions?.radarShowArea !== false;
+      return {
+        ...baseConfig,
+        tooltip: {
+          ...baseConfig.tooltip,
+          trigger: 'item'
+        },
+        radar: {
+          indicator: labels.map((label, index) => ({
+            name: label,
+            max: Math.max(...values) * 1.2
+          })),
+          center: ['50%', '55%'],
+          radius: `${stylingOptions?.radarRadius ?? 70}%`,
+          nameGap: stylingOptions?.radarNameGap ?? 5,
+          splitNumber: stylingOptions?.radarSplitNumber ?? 5,
+          shape: stylingOptions?.radarShape || 'polygon',
+          name: {
+            ...getTextStyle(),
+            fontSize: stylingOptions?.fontSize || 12
+          },
+          axisLine: {
+            lineStyle: {
+              color: currentTheme.gridColor
+            }
+          },
+          splitLine: {
+            lineStyle: {
+              color: currentTheme.gridColor
+            }
+          },
+          splitArea: {
+            show: radarShowArea,
+            areaStyle: {
+              color: [
+                currentTheme.gridColor + '20',
+                currentTheme.gridColor + '10'
+              ]
+            }
+          }
+        },
+        series: [{
+          name: 'Data',
+          type: 'radar',
+          data: [{
+            value: values,
+            name: 'Data',
+            areaStyle: radarShowArea ? {
+              opacity: (stylingOptions?.radarAreaOpacity ?? 30) / 100
+            } : undefined,
+            lineStyle: {
+              width: stylingOptions?.lineWidth || 3,
+              color: currentTheme.colors[0]
+            },
+            itemStyle: {
+              color: currentTheme.colors[0]
+            },
+            symbol: stylingOptions?.showDataPoints ? 'circle' : 'none',
+            symbolSize: stylingOptions?.showDataPoints ? (stylingOptions?.pointSize || 8) : 0,
+            label: stylingOptions?.valueVisible !== false ? {
+              show: true,
+              color: currentTheme.textColor,
+              fontFamily: stylingOptions?.fontFamily || 'Arial',
+              fontSize: stylingOptions?.fontSize || 12,
+              fontWeight: stylingOptions?.fontWeight || 400,
+              fontStyle: stylingOptions?.fontStyle || 'normal',
+              position: 'top',
+              formatter: '{c}'
+            } : {
+              show: false
+            }
+          }]
+        }]
+      };
+
     case 'funnel':
       return {
         ...baseConfig,
@@ -441,4 +514,5 @@ export const generateChartOption = (chartType, theme, data, stylingOptions = {})
       };
   }
 };
+
 

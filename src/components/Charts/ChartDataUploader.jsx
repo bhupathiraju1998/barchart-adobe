@@ -216,14 +216,18 @@ const ChartDataUploader = ({ onDataUploaded, onClose }) => {
       // Validate chart data format
       validateChartData(parsedData.headers, parsedData.data);
 
-      // Convert to chart format: { labels: [], values: [] }
+      // Convert to chart format: { labels: [], values: [] } or { labels: [], values: [[], []...], seriesNames: [] }
       const labelColumn = parsedData.headers[0];
-      const valueColumn = parsedData.headers[1];
+      const valueColumns = parsedData.headers.slice(1);
       
-      const chartData = {
-        labels: parsedData.data.map(row => row[labelColumn] || ''),
-        values: parsedData.data.map(row => parseFloat(row[valueColumn]) || 0)
-      };
+      const labels = parsedData.data.map(row => row[labelColumn] || '');
+      const values = valueColumns.map(column => 
+        parsedData.data.map(row => parseFloat(row[column]) || 0)
+      );
+      
+      const chartData = valueColumns.length === 1 
+        ? { labels, values: values[0] }
+        : { labels, values, seriesNames: valueColumns };
 
       onDataUploaded(chartData);
       setWarningMessage(null);
