@@ -8,12 +8,7 @@ const Themes = React.memo(({ selectedTheme = 'light', onThemeChange }) => {
     const pickerRef = useRef(null);
 
     // Log when Themes component renders
-    useEffect(() => {
-        console.log('🔴 [Themes] Component RENDERED/MOUNTED', {
-            selectedTheme,
-            onThemeChange: !!onThemeChange
-        });
-    });
+    
 
     const themeOptions = useMemo(() => [
         { label: 'Light Theme', value: 'light' },
@@ -28,13 +23,11 @@ const Themes = React.memo(({ selectedTheme = 'light', onThemeChange }) => {
         if (pickerElement) {
             // Only update if value actually changed
             if (pickerElement.value !== selectedTheme) {
-                console.log('🔴 [Themes] Updating picker value:', selectedTheme);
                 pickerElement.value = selectedTheme;
                 pickerElement.selected = selectedTheme;
             }
             
             const handleChange = (event) => {
-                console.log('🔴 [Themes] Picker change event:', event.target.value);
                 if (onThemeChange) {
                     onThemeChange(event.target.value);
                 }

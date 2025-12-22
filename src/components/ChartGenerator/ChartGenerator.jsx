@@ -32,9 +32,6 @@ const ChartGenerator = ({
     const [selectedColumnIndex, setSelectedColumnIndex] = useState(0);
 
     // Debug: Log when importedData changes
-    React.useEffect(() => {
-        console.log('🟢 [ChartGenerator] importedData changed:', importedData);
-    }, [importedData]);
 
     // Calculate available columns count
     const availableColumns = useMemo(() => {
@@ -46,7 +43,7 @@ const ChartGenerator = ({
     // Determine which charts need column navigation (single-series charts)
     // Mixed chart also needs navigation to select which columns to use
     const needsColumnNavigation = useMemo(() => {
-        const multiSeriesCharts = ['line', 'area', 'scatter', 'radar'];
+        const multiSeriesCharts = ['line', 'area', 'scatter', 'radar', 'bar'];
         return !multiSeriesCharts.includes(selectedChart) && availableColumns > 1;
     }, [selectedChart, availableColumns]);
 
@@ -111,16 +108,7 @@ const ChartGenerator = ({
     });
     const chartRef = useRef(null);
 
-    // Log when stylingOptions state changes
-    React.useEffect(() => {
-        console.log('🟢 [ChartGenerator] stylingOptions state updated:', {
-            fontFamily: stylingOptions?.fontFamily,
-            fontStyle: stylingOptions?.fontStyle,
-            fontSize: stylingOptions?.fontSize,
-            fontWeight: stylingOptions?.fontWeight,
-            fullOptions: stylingOptions
-        });
-    }, [stylingOptions]);
+    
 
     const handleChartRef = useCallback((ref) => {
         if (ref && ref.current) {
@@ -129,7 +117,6 @@ const ChartGenerator = ({
     }, []);
 
     const handleChartChange = useCallback((value) => {
-        console.log('🟢 [ChartGenerator] Chart change requested:', value);
         setSelectedChart(value);
     }, []);
 
@@ -138,7 +125,6 @@ const ChartGenerator = ({
         if (selectedChart === 'line' || selectedChart === 'area' || selectedChart === 'radar') {
             setStylingOptions(prev => {
                 if (prev.showDataPoints === false) {
-                    console.log('🟢 [ChartGenerator] Updating showDataPoints to true for chart type:', selectedChart);
                     return {
                         ...prev,
                         showDataPoints: true
@@ -150,7 +136,6 @@ const ChartGenerator = ({
     }, [selectedChart]);
 
     const handleThemeChange = useCallback((theme) => {
-        console.log('🟢 [ChartGenerator] Theme change requested:', theme);
         setSelectedTheme(theme);
     }, []);
 
@@ -252,14 +237,7 @@ const ChartGenerator = ({
     const addChartToPage = useCallback(async () => {
         setIsAdding(true);
         try {
-            console.log("🟢 [Chart] Starting chart export and insertion...");
-            console.log("🟢 [Chart] Current styling options when adding to page:", {
-                fontFamily: stylingOptions?.fontFamily,
-                fontStyle: stylingOptions?.fontStyle,
-                fontSize: stylingOptions?.fontSize,
-                fontWeight: stylingOptions?.fontWeight,
-                fullStylingOptions: stylingOptions
-            });
+            
 
             // Get the ECharts instance
             const echartsInstance = chartRef.current.getEchartsInstance();
@@ -269,17 +247,7 @@ const ChartGenerator = ({
 
             // Get the current chart option to verify styling
             const currentOption = echartsInstance.getOption();
-            console.log("🟢 [Chart] Current ECharts option (checking fontFamily/fontStyle):", {
-                hasXAxis: !!currentOption.xAxis,
-                hasYAxis: !!currentOption.yAxis,
-                hasLegend: !!currentOption.legend,
-                xAxisLabelFontFamily: currentOption.xAxis?.[0]?.axisLabel?.fontFamily,
-                xAxisLabelFontStyle: currentOption.xAxis?.[0]?.axisLabel?.fontStyle,
-                yAxisLabelFontFamily: currentOption.yAxis?.[0]?.axisLabel?.fontFamily,
-                yAxisLabelFontStyle: currentOption.yAxis?.[0]?.axisLabel?.fontStyle,
-                legendTextStyleFontFamily: currentOption.legend?.[0]?.textStyle?.fontFamily,
-                legendTextStyleFontStyle: currentOption.legend?.[0]?.textStyle?.fontStyle
-            });
+            
 
             // For single-series charts with multiple columns, ensure we export the selected column
             const isMultipleSeries = Array.isArray(importedData?.values?.[0]) && typeof importedData.values[0][0] === 'number';
@@ -328,30 +296,18 @@ const ChartGenerator = ({
                 backgroundColor: exportBackgroundColor
             });
 
-            console.log("🟢 [Chart] Chart exported to data URL (with styling:", {
-                fontFamily: stylingOptions?.fontFamily,
-                fontStyle: stylingOptions?.fontStyle
-            }, ")");
+            
 
             // Convert data URL to blob
             const response = await fetch(dataUrl);
             const blob = await response.blob();
-            console.log("🟢 [Chart] Chart converted to blob:", blob);
-
+            
             // Use sandbox function to add chart to design
             const result = await sandboxProxy.addChartToDesign(blob);
 
-            if (result.success) {
-                console.log("✅ [Chart] Chart added to design successfully with styling:", {
-                    fontFamily: stylingOptions?.fontFamily,
-                    fontStyle: stylingOptions?.fontStyle
-                });
-            } else {
-                alert(result.error || "Failed to add chart to design");
-            }
+            
         } catch (error) {
-            console.error("❌ [Chart] Error adding chart to design:", error);
-            alert(`Error: ${error.message}`);
+            console.log(`Error: ${error.message}`);
         } finally {
             setIsAdding(false);
         }
@@ -360,24 +316,9 @@ const ChartGenerator = ({
     // Handle API call after form submission
     const handleLoginSignupSubmit = useCallback(async (payload) => {
         try {
-            console.log("🟢 [ChartGenerator] Login/Signup Payload:", payload);
-            console.log("📦 [ChartGenerator] Payload Details:", {
-                adobeId: payload.adobeId,
-                adobeAccountType: payload.adobeAccountType,
-                productName: payload.productName,
-                email: payload.email
-            });
             
-            // TODO: Replace console.log with actual API call when ready
-            // const API_URL = 'https://api.swiftools.com/user/login-signup';
-            // const response = await fetch(API_URL, {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //     },
-            //     body: JSON.stringify(payload),
-            // });
-            // const data = await response.json();
+            
+            
 
             // Mark email as submitted
             if (onEmailSubmitted) {
@@ -406,13 +347,10 @@ const ChartGenerator = ({
             return;
         }
         
-        console.log("🟢 [ChartGenerator] Import CSV clicked - opening dialog");
-        console.log("🟢 [ChartGenerator] Current selectedChart:", selectedChart, "selectedTheme:", selectedTheme);
         
         try {
             // Pass current chart type and theme as URL parameters
             const dialogUrl = `csv-import-dialog.html?chartType=${encodeURIComponent(selectedChart)}&theme=${encodeURIComponent(selectedTheme)}`;
-            console.log("🟢 [ChartGenerator] Dialog URL:", dialogUrl);
             const result = await addOnUISdk.app.showModalDialog({
                 variant: "custom",
                 title: "Import CSV Data",
@@ -420,7 +358,6 @@ const ChartGenerator = ({
                 size: { width: 1200, height: 700 },
             });
             
-            console.log("🟢 [ChartGenerator] Dialog closed with result:", result);
             
             // Handle dialog result - result structure is: { type: 'custom', buttonType: 'primary', result: { labels: [...], values: [...] } }
             // The actual chartData is at result.result
@@ -434,29 +371,16 @@ const ChartGenerator = ({
                 
                 // Validate the data structure
                 if (chartData && Array.isArray(chartData.labels) && Array.isArray(chartData.values)) {
-                    console.log("🟢 [ChartGenerator] Valid data received from dialog:", chartData);
-                    console.log("🟢 [ChartGenerator] Setting importedData with:", {
-                        labelsCount: chartData.labels.length,
-                        valuesCount: chartData.values.length,
-                        labels: chartData.labels.slice(0, 5), // Show first 5 for debugging
-                        values: chartData.values.slice(0, 5)  // Show first 5 for debugging
-                    });
+                    
                     setImportedData(chartData);
-                } else {
-                    console.log("🟡 [ChartGenerator] Dialog closed without valid data structure. Result:", result);
-                    console.log("🟡 [ChartGenerator] chartData:", chartData);
                 }
-            } else {
-                console.log("🟡 [ChartGenerator] Dialog closed with no result");
-            }
+            } 
         } catch (error) {
-            console.error("❌ [ChartGenerator] Error opening CSV import dialog:", error);
             alert("Failed to open import dialog. Please try again.");
         }
     }, [sandboxProxy, addOnUISdk, selectedChart, selectedTheme]);
 
     const handleDataUploaded = useCallback((chartData) => {
-        console.log("🟢 [ChartGenerator] Data uploaded:", chartData);
         setImportedData(chartData);
         setIsUploadModalOpen(false);
     }, []);
@@ -470,14 +394,7 @@ const ChartGenerator = ({
     }, []);
 
     const handleStylingChange = useCallback((newOptions) => {
-        console.log('🟢 [ChartGenerator] Styling options changed:', {
-            newOptions,
-            fontFamily: newOptions?.fontFamily,
-            fontStyle: newOptions?.fontStyle,
-            fontSize: newOptions?.fontSize,
-            previousFontFamily: stylingOptions?.fontFamily,
-            previousFontStyle: stylingOptions?.fontStyle
-        });
+        
         setStylingOptions(newOptions);
     }, [stylingOptions]);
 

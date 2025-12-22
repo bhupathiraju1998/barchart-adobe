@@ -5,9 +5,7 @@ import './CSVImportDialogContent.css';
 
 const CSVImportDialogContent = ({ onClose, onDataSubmit, chartType = 'bar', theme = 'default' }) => {
   // Debug: Log props
-  React.useEffect(() => {
-    console.log('🟢 [CSVImportDialogContent] Props received:', { chartType, theme });
-  }, [chartType, theme]);
+
   // Get sample data structure
   const getSampleData = () => {
     return [
@@ -502,7 +500,6 @@ const CSVImportDialogContent = ({ onClose, onDataSubmit, chartType = 'bar', them
       ? { labels, values: values[0] }
       : { labels, values, seriesNames: valueColumns };
 
-    console.log('🟢 [CSVImportDialogContent] Submitting data:', chartData);
     
     // Save current table data before submitting
     try {
@@ -510,7 +507,6 @@ const CSVImportDialogContent = ({ onClose, onDataSubmit, chartType = 'bar', them
         headers: headers,
         rows: tableData
       }));
-      console.log('🟢 [CSVImportDialogContent] Saved data to sessionStorage');
     } catch (error) {
       console.error('Error saving data before submit:', error);
     }

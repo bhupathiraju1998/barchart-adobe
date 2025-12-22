@@ -18,14 +18,11 @@ const CSVImportDialogApp = () => {
         const urlChartType = params.get('chartType');
         const urlTheme = params.get('theme');
         
-        console.log('🟢 [CSVImportDialog] URL params:', { urlChartType, urlTheme, search: window.location.search });
         
         if (urlChartType) {
-          console.log('🟢 [CSVImportDialog] Setting chartType to:', urlChartType);
           setChartType(urlChartType);
         }
         if (urlTheme) {
-          console.log('🟢 [CSVImportDialog] Setting theme to:', urlTheme);
           setTheme(urlTheme);
         }
       } catch (err) {
@@ -44,7 +41,6 @@ const CSVImportDialogApp = () => {
   const handleDataSubmit = (chartData) => {
     // Send data back to the main app via dialog result
     // The result object will be returned by showModalDialog promise
-    console.log('🟢 [CSVImportDialog] Submitting data to close dialog:', chartData);
     addOnUISdk.instance.runtime.dialog.close({
       result: chartData
     });
@@ -59,7 +55,6 @@ const CSVImportDialogApp = () => {
     );
   }
 
-  console.log('🟢 [CSVImportDialog] Rendering with chartType:', chartType, 'theme:', theme);
   
   return (
     <CSVImportDialogContent

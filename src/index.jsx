@@ -7,7 +7,6 @@ import addOnUISdk from "https://new.express.adobe.com/static/add-on-sdk/sdk.js";
 const initApp = async () => {
     try {
         await addOnUISdk.ready;
-        console.log("addOnUISdk is ready for use.");
 
         const rootElement = document.getElementById("root");
         if (!rootElement) {
@@ -19,7 +18,6 @@ const initApp = async () => {
         
         if (addOnUISdk.instance && addOnUISdk.instance.runtime) {
             const runtime = addOnUISdk.instance.runtime;
-            console.log("🟡 [Index] Requesting sandbox proxy...");
             
             // Request API proxy with retry logic
             try {
@@ -27,16 +25,12 @@ const initApp = async () => {
                     runtime.apiProxy("documentSandbox"),
                     new Promise((_, reject) => setTimeout(() => reject(new Error('Proxy timeout')), 5000))
                 ]);
-                console.log("✅ [Index] Sandbox proxy obtained:", sandboxProxy);
             } catch (proxyError) {
-                console.warn("⚠️ [Index] First proxy attempt failed:", proxyError);
                 // Retry once
                 try {
                     await new Promise(resolve => setTimeout(resolve, 1000));
                     sandboxProxy = await runtime.apiProxy("documentSandbox");
-                    console.log("✅ [Index] Sandbox proxy obtained on retry:", sandboxProxy);
                 } catch (retryError) {
-                    console.warn('❌ [Index] Sandbox proxy unavailable after retry:', retryError);
                     sandboxProxy = null;
                 }
             }

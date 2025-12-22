@@ -6,13 +6,7 @@ import "@spectrum-web-components/menu/sp-menu-item.js";
 const ChartPicker = React.memo(({ selectedChart, onChartChange }) => {
     const pickerRef = useRef(null);
 
-    // Log when ChartPicker component renders
-    React.useEffect(() => {
-        console.log('🟡 [ChartPicker] Component RENDERED/MOUNTED', {
-            selectedChart,
-            onChartChange: !!onChartChange
-        });
-    });
+    
 
     const chartOptions = useMemo(() => [
         { label: 'Bar Chart', value: 'bar' },
@@ -31,13 +25,11 @@ const ChartPicker = React.memo(({ selectedChart, onChartChange }) => {
         if (pickerElement) {
             // Only update if value actually changed
             if (pickerElement.value !== selectedChart) {
-                console.log('🟡 [ChartPicker] Updating picker value:', selectedChart);
                 pickerElement.value = selectedChart;
                 pickerElement.selected = selectedChart;
             }
             
             const handleChange = (event) => {
-                console.log('🟡 [ChartPicker] Picker change event:', event.target.value);
                 if (onChartChange) {
                     onChartChange(event.target.value);
                 }

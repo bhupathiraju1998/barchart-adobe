@@ -3,16 +3,7 @@ import './Charts.css';
 
 const ChartActions = React.memo(({ sandboxProxy, isAdding, onAddToPage, onImportCSV, isPro, isProOnlySelected, onOpenUpgradeDrawer }) => {
     // Log when ChartActions component renders
-    useEffect(() => {
-        console.log('🟠 [ChartActions] Component RENDERED/MOUNTED', {
-            sandboxProxy: !!sandboxProxy,
-            isAdding,
-            onAddToPage: !!onAddToPage,
-            onImportCSV: !!onImportCSV,
-            isPro,
-            isProOnlySelected
-        });
-    });
+    
 
     // Determine button text and action
     const buttonConfig = useMemo(() => {

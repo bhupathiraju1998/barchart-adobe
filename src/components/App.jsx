@@ -278,11 +278,9 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
             if (storedKey) {
                 try {
                     // Re-validate subscription with server
-                    console.log('🔍 Re-validating subscription...');
                     const validation = await revalidateSubscription(storedKey);
                     
                     if (!validation.success || !validation.valid) {
-                        console.log(`❌ Subscription invalid: ${validation.reason}`);
                         
                         // Revoke license if needed
                         if (validation.shouldRevoke) {
@@ -306,11 +304,9 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                         
                         await clientStorage.setItem('licenseData', JSON.stringify(licenseDataToStore));
                         
-                        console.log(`✅ Valid ${validation.type} subscription: ${validation.reason}`);
                         setIsPro(true);
                     }
                 } catch (error) {
-                    console.error('Error validating subscription:', error);
                     
                     // Offline mode: Check cached data
                     const storedLicenseData = await clientStorage.getItem('licenseData');
@@ -322,31 +318,25 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                             
                             if (!cachedValidation.valid) {
                                 if (cachedValidation.shouldRevoke) {
-                                    console.log(`❌ ${cachedValidation.reason}`);
                                     await clientStorage.removeItem('licenseKey');
                                     await clientStorage.removeItem('licenseData');
                                     setIsPro(false);
                                 } else {
-                                    console.log(`⚠️ ${cachedValidation.reason}`);
                                     setIsPro(false);
                                 }
                                 return;
                             }
                             
-                            console.log(`✅ ${cachedValidation.reason}`);
                             setIsPro(true);
                             
                         } catch (parseError) {
-                            console.error('Error parsing cached license data:', parseError);
                             setIsPro(false);
                         }
                     } else {
-                        console.log('❌ No cached license data available');
                         setIsPro(false);
                     }
                 }
             } else {
-                console.log('🆕 No license key found');
                 setIsPro(false);
             }
         };
@@ -398,7 +388,6 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                 if (userId) {
                     await sendDirectNotification(userId, webhookUrl);
                     sessionStorage.setItem('notificationSent', 'true');
-                    console.log('✅ First page load notification sent');
                 }
             } catch (error) {
                 // Silently fail - don't break the app
@@ -453,11 +442,9 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
     const handlePromotionPopup = useCallback(
         async (templateKey) => {
             if (!templateKey) {
-                console.warn("Promotion popup missing template key");
                 return;
             }
             if (!addOnUISdk?.app?.showModalDialog) {
-                console.warn("showModalDialog API unavailable");
                 return;
             }
             const dialogUrl = `promotion-dialog.html?template=${encodeURIComponent(templateKey)}`;
@@ -545,7 +532,6 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
         const templateKey = popupConfig.template || promotionConfig?.buttonAction?.inScreenPopup?.currentTemplate;
         
         if (!templateKey) {
-            console.warn("Promotion popup template key not found");
             return;
         }
         
@@ -593,7 +579,6 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
 
     const handleRemoveLicenseKey = async () => {
         if (!addOnUISdk || !addOnUISdk.instance || !addOnUISdk.instance.clientStorage) {
-            console.warn('ClientStorage not available');
             return;
         }
         
@@ -606,17 +591,14 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
 
     // Reliable confetti trigger function
     const triggerConfetti = () => {
-        console.log('🎉 Triggering confetti...');
         setShowConfetti(false); // Reset first
         setConfettiKey(prev => prev + 1); // Force re-render
         setTimeout(() => {
             setShowConfetti(true);
-            console.log('🎊 Confetti should now be visible');
             
             // Auto-hide confetti after 8 seconds
             setTimeout(() => {
                 setShowConfetti(false);
-                console.log('🎊 Confetti hidden');
             }, 8000);
         }, 50); // Small delay to ensure state reset
     };

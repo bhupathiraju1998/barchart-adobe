@@ -7,12 +7,7 @@ const ThemePicker = React.memo(({ selectedTheme, onThemeChange }) => {
     const pickerRef = useRef(null);
 
     // Log when ThemePicker component renders
-    React.useEffect(() => {
-        console.log('🔴 [ThemePicker] Component RENDERED/MOUNTED', {
-            selectedTheme,
-            onThemeChange: !!onThemeChange
-        });
-    });
+    
 
     const themeOptions = useMemo(() => [
         { label: 'Default (Theme)', value: 'default' },
@@ -31,13 +26,11 @@ const ThemePicker = React.memo(({ selectedTheme, onThemeChange }) => {
         if (pickerElement) {
             // Only update if value actually changed
             if (pickerElement.value !== selectedTheme) {
-                console.log('🔴 [ThemePicker] Updating picker value:', selectedTheme);
                 pickerElement.value = selectedTheme;
                 pickerElement.selected = selectedTheme;
             }
             
             const handleChange = (event) => {
-                console.log('🔴 [ThemePicker] Picker change event:', event.target.value);
                 if (onThemeChange) {
                     onThemeChange(event.target.value);
                 }

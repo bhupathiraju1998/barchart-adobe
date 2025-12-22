@@ -183,32 +183,16 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
             // Set up change event listener
             const handleFontFamilyChangeEvent = (event) => {
                 const newFontFamily = event.target.value;
-                console.log('🟡 [ChartStylingOptions] Font Family changed via event listener:', {
-                    newFontFamily,
-                    previousFontFamily: localOptions.fontFamily,
-                    eventValue: event.target.value,
-                    eventType: event.type
-                });
+                
                 // Use functional update to get latest localOptions
                 setLocalOptions(prev => {
                     const newOptions = {
                         ...prev,
                         fontFamily: newFontFamily
                     };
-                    console.log('🟡 [ChartStylingOptions] handleChange called (from fontFamily event):', {
-                        key: 'fontFamily',
-                        value: newFontFamily,
-                        previousValue: prev.fontFamily,
-                        newOptions_fontFamily: newOptions.fontFamily,
-                        newOptions_fontStyle: newOptions.fontStyle,
-                        newOptions_fontSize: newOptions.fontSize
-                    });
+                    
                     if (onStylingChange) {
-                        console.log('🟡 [ChartStylingOptions] Calling onStylingChange with:', {
-                            fontFamily: newOptions.fontFamily,
-                            fontStyle: newOptions.fontStyle,
-                            fontSize: newOptions.fontSize
-                        });
+                        
                         onStylingChange(newOptions);
                     }
                     return newOptions;
@@ -233,32 +217,16 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
             // Set up change event listener
             const handleFontStyleChangeEvent = (event) => {
                 const newFontStyle = event.target.value;
-                console.log('🟡 [ChartStylingOptions] Font Style changed via event listener:', {
-                    newFontStyle,
-                    previousFontStyle: localOptions.fontStyle,
-                    eventValue: event.target.value,
-                    eventType: event.type
-                });
+                
                 // Use functional update to get latest localOptions
                 setLocalOptions(prev => {
                     const newOptions = {
                         ...prev,
                         fontStyle: newFontStyle
                     };
-                    console.log('🟡 [ChartStylingOptions] handleChange called (from fontStyle event):', {
-                        key: 'fontStyle',
-                        value: newFontStyle,
-                        previousValue: prev.fontStyle,
-                        newOptions_fontFamily: newOptions.fontFamily,
-                        newOptions_fontStyle: newOptions.fontStyle,
-                        newOptions_fontSize: newOptions.fontSize
-                    });
+                    
                     if (onStylingChange) {
-                        console.log('🟡 [ChartStylingOptions] Calling onStylingChange with:', {
-                            fontFamily: newOptions.fontFamily,
-                            fontStyle: newOptions.fontStyle,
-                            fontSize: newOptions.fontSize
-                        });
+                        
                         onStylingChange(newOptions);
                     }
                     return newOptions;
@@ -284,27 +252,15 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
             // Set up change event listener
             const handleXAxisRotationChangeEvent = (event) => {
                 const newRotation = parseInt(event.target.value, 10);
-                console.log('🟡 [ChartStylingOptions] X-Axis Rotation changed via event listener:', {
-                    newRotation,
-                    previousRotation: localOptions.xAxisRotation,
-                    eventValue: event.target.value,
-                    eventType: event.type
-                });
+                
                 // Use functional update to get latest localOptions
                 setLocalOptions(prev => {
                     const newOptions = {
                         ...prev,
                         xAxisRotation: newRotation
                     };
-                    console.log('🟡 [ChartStylingOptions] handleChange called (from xAxisRotation event):', {
-                        key: 'xAxisRotation',
-                        value: newRotation,
-                        previousValue: prev.xAxisRotation,
-                        newOptions_xAxisRotation: newOptions.xAxisRotation,
-                        newOptions_yAxisRotation: newOptions.yAxisRotation
-                    });
+                    
                     if (onStylingChange) {
-                        console.log('🟡 [ChartStylingOptions] Calling onStylingChange with xAxisRotation:', newRotation);
                         onStylingChange(newOptions);
                     }
                     return newOptions;
@@ -330,27 +286,15 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
             // Set up change event listener
             const handleYAxisRotationChangeEvent = (event) => {
                 const newRotation = parseInt(event.target.value, 10);
-                console.log('🟡 [ChartStylingOptions] Y-Axis Rotation changed via event listener:', {
-                    newRotation,
-                    previousRotation: localOptions.yAxisRotation,
-                    eventValue: event.target.value,
-                    eventType: event.type
-                });
+                
                 // Use functional update to get latest localOptions
                 setLocalOptions(prev => {
                     const newOptions = {
                         ...prev,
                         yAxisRotation: newRotation
                     };
-                    console.log('🟡 [ChartStylingOptions] handleChange called (from yAxisRotation event):', {
-                        key: 'yAxisRotation',
-                        value: newRotation,
-                        previousValue: prev.yAxisRotation,
-                        newOptions_xAxisRotation: newOptions.xAxisRotation,
-                        newOptions_yAxisRotation: newOptions.yAxisRotation
-                    });
+                    
                     if (onStylingChange) {
-                        console.log('🟡 [ChartStylingOptions] Calling onStylingChange with yAxisRotation:', newRotation);
                         onStylingChange(newOptions);
                     }
                     return newOptions;
@@ -376,19 +320,13 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
             // Set up change event listener
             const handleFunnelLabelPositionChangeEvent = (event) => {
                 const newValue = event.target.value;
-                console.log('🟡 [ChartStylingOptions] Funnel Label Position changed via event listener:', {
-                    newValue,
-                    eventValue: event.target.value,
-                    eventType: event.type
-                });
+                
                 setLocalOptions(prev => {
-                    console.log('🟡 [ChartStylingOptions] Funnel Label Position - previous value:', prev.funnelLabelPosition);
                     const newOptions = {
                         ...prev,
                         funnelLabelPosition: newValue
                     };
                     if (onStylingChange) {
-                        console.log('🟡 [ChartStylingOptions] Calling onStylingChange with funnelLabelPosition:', newValue);
                         onStylingChange(newOptions);
                     }
                     return newOptions;
@@ -421,19 +359,13 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
             // Set up change event listener
             const handleFunnelSortChangeEvent = (event) => {
                 const newValue = event.target.value;
-                console.log('🟡 [ChartStylingOptions] Funnel Sort changed via event listener:', {
-                    newValue,
-                    eventValue: event.target.value,
-                    eventType: event.type
-                });
+                
                 setLocalOptions(prev => {
-                    console.log('🟡 [ChartStylingOptions] Funnel Sort - previous value:', prev.funnelSort);
                     const newOptions = {
                         ...prev,
                         funnelSort: newValue
                     };
                     if (onStylingChange) {
-                        console.log('🟡 [ChartStylingOptions] Calling onStylingChange with funnelSort:', newValue);
                         onStylingChange(newOptions);
                     }
                     return newOptions;
@@ -466,19 +398,13 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
             // Set up change event listener
             const handleScatterPointShapeChangeEvent = (event) => {
                 const newValue = event.target.value;
-                console.log('🟡 [ChartStylingOptions] Scatter Point Shape changed via event listener:', {
-                    newValue,
-                    eventValue: event.target.value,
-                    eventType: event.type
-                });
+                
                 setLocalOptions(prev => {
-                    console.log('🟡 [ChartStylingOptions] Scatter Point Shape - previous value:', prev.scatterPointShape);
                     const newOptions = {
                         ...prev,
                         scatterPointShape: newValue
                     };
                     if (onStylingChange) {
-                        console.log('🟡 [ChartStylingOptions] Calling onStylingChange with scatterPointShape:', newValue);
                         onStylingChange(newOptions);
                     }
                     return newOptions;
@@ -557,42 +483,23 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
             ...localOptions,
             [key]: value
         };
-        console.log('🟡 [ChartStylingOptions] handleChange called:', {
-            key,
-            value,
-            previousValue: localOptions[key],
-            newOptions_fontFamily: newOptions.fontFamily,
-            newOptions_fontStyle: newOptions.fontStyle,
-            newOptions_fontSize: newOptions.fontSize
-        });
+        
         setLocalOptions(newOptions);
         if (onStylingChange) {
-            console.log('🟡 [ChartStylingOptions] Calling onStylingChange with:', {
-                fontFamily: newOptions.fontFamily,
-                fontStyle: newOptions.fontStyle,
-                fontSize: newOptions.fontSize
-            });
+            
             onStylingChange(newOptions);
         }
     };
 
     const handleFontFamilyChange = (event) => {
         const newFontFamily = event.target.value;
-        console.log('🟡 [ChartStylingOptions] Font Family changed in UI:', {
-            newFontFamily,
-            previousFontFamily: localOptions.fontFamily,
-            eventValue: event.target.value
-        });
+        
         handleChange('fontFamily', newFontFamily);
     };
 
     const handleFontStyleChange = (event) => {
         const newFontStyle = event.target.value;
-        console.log('🟡 [ChartStylingOptions] Font Style changed in UI:', {
-            newFontStyle,
-            previousFontStyle: localOptions.fontStyle,
-            eventValue: event.target.value
-        });
+        
         handleChange('fontStyle', newFontStyle);
     };
 
@@ -1058,24 +965,26 @@ const ChartStylingOptions = React.memo(({ chartType, stylingOptions, onStylingCh
                         </div>
                     </div>
 
-                    <div className="styling-section">
-                        <h3 className="styling-section-title">Show Legend</h3>
-                        <div className="toggle-group">
-                            <div className="toggle-item">
-                                <label className="toggle-label">Legend</label>
-                                <label className="switch">
-                                    <input
-                                        type="checkbox"
-                                        checked={localOptions.showLegend}
-                                        onChange={() => handleToggle('showLegend')}
-                                    />
-                                    <span className="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
                 </>
             )}
+
+            {/* Show Legend Toggle - Available for all charts */}
+            <div className="styling-section">
+                <h3 className="styling-section-title">Show Legend</h3>
+                <div className="toggle-group">
+                    <div className="toggle-item">
+                        <label className="toggle-label">Legend</label>
+                        <label className="switch">
+                            <input
+                                type="checkbox"
+                                checked={localOptions.showLegend}
+                                onChange={() => handleToggle('showLegend')}
+                            />
+                            <span className="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
 
             {/* Radar Chart Options */}
             {isRadarChart && (

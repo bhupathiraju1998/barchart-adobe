@@ -83,8 +83,7 @@ const LoginSignupModal = ({ isOpen, onClose, onSubmit, addOnUISdk }) => {
       }
 
       const data = await response.json();
-      console.log('✅ User registration successful:', data);
-
+      
       // Send Discord notification on email submission (silently fail if it doesn't work)
       // Note: This is separate from first page load notification
       // Check session storage to avoid duplicate if first page load already sent
@@ -186,8 +185,7 @@ const LoginSignupModal = ({ isOpen, onClose, onSubmit, addOnUISdk }) => {
       }
 
       const data = await response.json();
-      console.log('✅ Existing user check successful:', data);
-
+      
       // Check if user exists based on API response structure
       // Response structure: { success: true, data: { email, adobeId, adobeAccountType, products } }
       if (data.success === true && data.data && (data.data.email || data.data.adobeId)) {

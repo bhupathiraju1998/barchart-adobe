@@ -16,16 +16,7 @@ const ChartPreview = ({
 }) => {
     const chartRef = useRef(null);
 
-    // Log when ChartPreview component renders
-    React.useEffect(() => {
-        console.log('🟣 [ChartPreview] Component RENDERED/MOUNTED', {
-            chartType,
-            theme,
-            onChartRef: !!onChartRef,
-            hasImportedData: !!importedData,
-            stylingOptions
-        });
-    });
+    
 
     // Expose chartRef to parent via callback
     React.useEffect(() => {
@@ -96,15 +87,7 @@ const ChartPreview = ({
 
     // Memoize chart option calculation to prevent unnecessary recalculations
     const chartOption = useMemo(() => {
-        console.log('🟣 [ChartPreview] Computing chart option for:', { 
-            chartType, 
-            theme, 
-            hasImportedData: !!importedData, 
-            stylingOptions,
-            fontFamily: stylingOptions?.fontFamily,
-            fontStyle: stylingOptions?.fontStyle,
-            fontSize: stylingOptions?.fontSize
-        });
+        
         
         // Helper function to get text style based on styling options (for labels, axis labels, legend, etc.)
         // Defined inside useMemo to ensure it uses the latest stylingOptions
@@ -115,7 +98,6 @@ const ChartPreview = ({
                     fontFamily: 'Arial',
                     fontStyle: 'normal'
                 };
-                console.log('🔵 [ChartPreview] getTextStyle (no stylingOptions):', { isValue, result });
                 return result;
             }
 
@@ -147,24 +129,7 @@ const ChartPreview = ({
                 show: visibility !== false && (defaultStyle.show !== false)
             };
             
-            console.log('🔵 [ChartPreview] getTextStyle:', {
-                isValue,
-                chartType,
-                visibility,
-                valueVisible: stylingOptions.valueVisible,
-                labelVisible: stylingOptions.labelVisible,
-                visibilityCheck: visibility !== false,
-                defaultStyleShow: defaultStyle.show,
-                finalShow: result.show,
-                stylingOptions_fontFamily: stylingOptions.fontFamily,
-                stylingOptions_fontStyle: stylingOptions.fontStyle,
-                result_fontFamily: result.fontFamily,
-                result_fontStyle: result.fontStyle,
-                result_fontWeight: result.fontWeight,
-                result_fontSize: result.fontSize,
-                result_show: result.show,
-                fullResult: result
-            });
+            
 
             return result;
         };
@@ -199,22 +164,27 @@ const ChartPreview = ({
         // Helper to get barCategoryGap value
         const getBarCategoryGap = () => {
             const spacing = stylingOptions?.barSpacing;
-            console.log('🟣 [ChartPreview] getBarCategoryGap called:', {
-                spacing,
-                stylingOptions_barSpacing: stylingOptions?.barSpacing,
-                isUndefined: spacing === undefined,
-                isNull: spacing === null,
-                type: typeof spacing
-            });
+            
             // Handle 0 explicitly - 0 is a valid value
             if (spacing !== undefined && spacing !== null && spacing !== '') {
                 const result = `${spacing}%`;
-                console.log('🟣 [ChartPreview] barCategoryGap result:', result);
                 return result;
             }
             const defaultResult = '0%';
-            console.log('🟣 [ChartPreview] barCategoryGap default:', defaultResult);
             return defaultResult;
+        };
+
+        // Helper to calculate bar width based on number of series
+        const getBarWidth = (numSeries = 1) => {
+            const baseWidth = stylingOptions?.barWidth ?? 60;
+            // When multiple series exist, divide the width by number of series
+            // Leave some space for gaps between bars (reduce by 10% per additional series)
+            if (numSeries > 1) {
+                // Calculate width per bar: baseWidth / numSeries, with some margin for gaps
+                const widthPerBar = Math.max(15, (baseWidth / numSeries) * 0.9);
+                return `${widthPerBar}%`;
+            }
+            return `${baseWidth}%`;
         };
 
         // Use imported data if available, otherwise use dummy data
@@ -222,7 +192,7 @@ const ChartPreview = ({
         
         // Handle both single array and array of arrays (multiple series)
         const isMultipleSeries = Array.isArray(importedData?.values?.[0]) && typeof importedData.values[0][0] === 'number';
-        const multiSeriesCharts = ['line', 'area', 'scatter', 'radar'];
+        const multiSeriesCharts = ['line', 'area', 'scatter', 'radar', 'bar'];
         const shouldUseAllSeries = multiSeriesCharts.includes(chartType);
         
         const commonValues = isMultipleSeries 
@@ -262,6 +232,18 @@ const ChartPreview = ({
                             type: 'shadow'
                         }
                     },
+                    legend: {
+                        data: isMultipleSeries && shouldUseAllSeries ? seriesNames : ['Sales'],
+                        textStyle: getTextStyle(),
+                        bottom: 0,
+                        left: 'center',
+                        show: stylingOptions?.showLegend !== false
+                    },
+                    grid: {
+                        ...baseConfig.grid,
+                        top: '15%',
+                        bottom: '15%'
+                    },
                     xAxis: {
                         type: 'category',
                         data: commonData,
@@ -297,12 +279,38 @@ const ChartPreview = ({
                             }
                         }
                     },
-                    series: [
-                        {
+                    series: isMultipleSeries && shouldUseAllSeries 
+                        ? (() => {
+                            const numSeries = allSeriesValues.length;
+                            const calculatedBarWidth = getBarWidth(numSeries);
+                            return allSeriesValues.map((seriesValues, index) => ({
+                                name: seriesNames[index] || `Series ${index + 1}`,
+                                type: 'bar',
+                                data: seriesValues,
+                                barWidth: calculatedBarWidth,
+                                barCategoryGap: getBarCategoryGap(),
+                                barGap: numSeries > 1 ? '10%' : '0%',
+                                itemStyle: {
+                                    color: currentTheme.colors[index % currentTheme.colors.length],
+                                    borderRadius: [
+                                        stylingOptions?.barBorderRadius ?? 4,
+                                        stylingOptions?.barBorderRadius ?? 4,
+                                        0,
+                                        0
+                                    ]
+                                },
+                                label: getValueStyle({
+                                    show: true,
+                                    position: 'top',
+                                    color: currentTheme.textColor
+                                })
+                            }));
+                        })()
+                        : [{
                             name: 'Sales',
                             type: 'bar',
                             data: commonValues,
-                            barWidth: `${stylingOptions?.barWidth ?? 60}%`,
+                            barWidth: getBarWidth(1),
                             barCategoryGap: getBarCategoryGap(),
                             barGap: '0%',
                             itemStyle: {
@@ -319,8 +327,7 @@ const ChartPreview = ({
                                 position: 'top',
                                 color: currentTheme.textColor
                             })
-                        }
-                    ]
+                        }]
                 };
 
             case 'line':
@@ -330,10 +337,18 @@ const ChartPreview = ({
                         ...baseConfig.tooltip,
                         trigger: 'axis'
                     },
-                    legend: isMultipleSeries && shouldUseAllSeries ? {
-                        data: seriesNames,
-                        textStyle: getTextStyle()
-                    } : undefined,
+                    legend: {
+                        data: isMultipleSeries && shouldUseAllSeries ? seriesNames : ['Sales'],
+                        textStyle: getTextStyle(),
+                        bottom: 0,
+                        left: 'center',
+                        show: stylingOptions?.showLegend !== false
+                    },
+                    grid: {
+                        ...baseConfig.grid,
+                        top: '15%',
+                        bottom: '15%'
+                    },
                     xAxis: {
                         type: 'category',
                         data: commonData,
@@ -508,10 +523,18 @@ const ChartPreview = ({
                         ...baseConfig.tooltip,
                         trigger: 'axis'
                     },
-                    legend: isMultipleSeries && shouldUseAllSeries ? {
-                        data: seriesNames,
-                        textStyle: getTextStyle()
-                    } : undefined,
+                    legend: {
+                        data: isMultipleSeries && shouldUseAllSeries ? seriesNames : ['Sales'],
+                        textStyle: getTextStyle(),
+                        bottom: 0,
+                        left: 'center',
+                        show: stylingOptions?.showLegend !== false
+                    },
+                    grid: {
+                        ...baseConfig.grid,
+                        top: '15%',
+                        bottom: '15%'
+                    },
                     xAxis: {
                         type: 'category',
                         data: commonData,
@@ -624,6 +647,10 @@ const ChartPreview = ({
                             return `${params.name}: (${params.value[0]}, ${params.value[1]})`;
                         }
                     },
+                    grid: {
+                        ...baseConfig.grid,
+                        top: '15%'
+                    },
                     xAxis: {
                         type: 'value',
                         name: 'Value',
@@ -668,10 +695,18 @@ const ChartPreview = ({
                             }
                         }
                     },
-                    legend: isMultipleSeries && shouldUseAllSeries ? {
-                        data: seriesNames,
-                        textStyle: getTextStyle()
-                    } : undefined,
+                    legend: {
+                        data: isMultipleSeries && shouldUseAllSeries ? seriesNames : ['Sales'],
+                        textStyle: getTextStyle(),
+                        bottom: 0,
+                        left: 'center',
+                        show: stylingOptions?.showLegend !== false
+                    },
+                    grid: {
+                        ...baseConfig.grid,
+                        top: '15%',
+                        bottom: '15%'
+                    },
                     series: isMultipleSeries && shouldUseAllSeries
                         ? allSeriesValues.map((seriesValues, index) => ({
                             name: seriesNames[index] || `Series ${index + 1}`,
@@ -769,6 +804,7 @@ const ChartPreview = ({
                     },
                     grid: {
                         ...baseConfig.grid,
+                        top: '15%',
                         left: '15%',
                         right: '4%'
                     },
@@ -917,7 +953,12 @@ const ChartPreview = ({
                         data: commonData,
                         textStyle: getLabelStyle({
                             color: currentTheme.textColor
-                        })
+                        }),
+                        show: stylingOptions?.showLegend !== false
+                    },
+                    grid: {
+                        ...baseConfig.grid,
+                        top: '15%'
                     },
                     series: [
                         {
@@ -980,15 +1021,7 @@ const ChartPreview = ({
             case 'radar':
                 const radarShowArea = stylingOptions?.radarShowArea !== false;
                 
-                console.log('🔴 [ChartPreview] Radar chart configuration:', {
-                    showDataPoints: stylingOptions?.showDataPoints,
-                    valueVisible: stylingOptions?.valueVisible,
-                    pointSize: stylingOptions?.pointSize,
-                    radarShowArea: stylingOptions?.radarShowArea,
-                    radarRadius: stylingOptions?.radarRadius,
-                    radarShape: stylingOptions?.radarShape,
-                    fullStylingOptions: stylingOptions
-                });
+                
                 
                 // Values should show based on valueVisible toggle, not just showDataPoints
                 // Data points control symbols, values control labels
@@ -1002,20 +1035,25 @@ const ChartPreview = ({
                     show: false
                 };
                 
-                console.log('🔴 [ChartPreview] Radar label configuration:', {
-                    showDataPoints: stylingOptions?.showDataPoints,
-                    valueVisible: stylingOptions?.valueVisible,
-                    shouldShowValues,
-                    labelConfig,
-                    labelShow: labelConfig.show,
-                    labelFormatter: labelConfig.formatter
-                });
+                
                 
                 return {
                     ...baseConfig,
                     tooltip: {
                         ...baseConfig.tooltip,
                         trigger: 'item'
+                    },
+                    legend: {
+                        data: isMultipleSeries && shouldUseAllSeries ? seriesNames : ['Sales'],
+                        textStyle: getTextStyle(),
+                        bottom: 0,
+                        left: 'center',
+                        show: stylingOptions?.showLegend !== false
+                    },
+                    grid: {
+                        ...baseConfig.grid,
+                        top: '15%',
+                        bottom: '15%'
                     },
                     radar: {
                         indicator: commonData.map((label, index) => {
@@ -1092,6 +1130,21 @@ const ChartPreview = ({
                     tooltip: {
                         ...baseConfig.tooltip,
                         trigger: 'axis'
+                    },
+                    legend: (() => {
+                        const mixedValues = getMixedChartValues();
+                        return {
+                            data: [mixedValues.barName, mixedValues.lineName],
+                            textStyle: getTextStyle(),
+                            bottom: 0,
+                            left: 'center',
+                            show: stylingOptions?.showLegend !== false
+                        };
+                    })(),
+                    grid: {
+                        ...baseConfig.grid,
+                        top: '15%',
+                        bottom: '15%'
                     },
                     xAxis: {
                         type: 'category',
@@ -1212,32 +1265,7 @@ const ChartPreview = ({
     React.useEffect(() => {
         if (chartOption && chartOption.series) {
             const firstSeries = chartOption.series[0];
-            console.log('🟣 [ChartPreview] Final chart option computed:', {
-                hasXAxis: !!chartOption.xAxis,
-                hasYAxis: !!chartOption.yAxis,
-                hasLegend: !!chartOption.legend,
-                hasSeries: !!chartOption.series,
-                barSpacing: stylingOptions?.barSpacing,
-                firstSeriesType: firstSeries?.type,
-                barCategoryGap: firstSeries?.barCategoryGap,
-                barGap: firstSeries?.barGap,
-                barWidth: firstSeries?.barWidth,
-                fullFirstSeries: firstSeries,
-                xAxisLabelFontFamily: chartOption.xAxis?.axisLabel?.fontFamily,
-                xAxisLabelFontStyle: chartOption.xAxis?.axisLabel?.fontStyle,
-                yAxisLabelFontFamily: chartOption.yAxis?.axisLabel?.fontFamily,
-                yAxisLabelFontStyle: chartOption.yAxis?.axisLabel?.fontStyle,
-                legendTextStyleFontFamily: chartOption.legend?.textStyle?.fontFamily,
-                legendTextStyleFontStyle: chartOption.legend?.textStyle?.fontStyle,
-                seriesLabelFontFamily: chartOption.series?.[0]?.label?.fontFamily,
-                seriesLabelFontStyle: chartOption.series?.[0]?.label?.fontStyle,
-                currentStylingOptions: {
-                    fontFamily: stylingOptions?.fontFamily,
-                    fontStyle: stylingOptions?.fontStyle,
-                    fontSize: stylingOptions?.fontSize,
-                    barSpacing: stylingOptions?.barSpacing
-                }
-            });
+            
         }
     }, [chartOption, stylingOptions]);
 

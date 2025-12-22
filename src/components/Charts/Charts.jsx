@@ -11,14 +11,7 @@ const Charts = React.memo(({ sandboxProxy, selectedTheme = 'light' }) => {
     const chartRef = useRef(null);
 
     // Log when Charts component renders
-    React.useEffect(() => {
-        console.log('🟢 [Charts] Component RENDERED/MOUNTED', {
-            selectedChart,
-            selectedTheme,
-            sandboxProxy: !!sandboxProxy,
-            isAdding
-        });
-    });
+    
 
     const handleChartRef = useCallback((ref) => {
         if (ref && ref.current) {
@@ -27,7 +20,6 @@ const Charts = React.memo(({ sandboxProxy, selectedTheme = 'light' }) => {
     }, []);
 
     const handleChartChange = useCallback((value) => {
-        console.log('🟢 [Charts] Chart change requested:', value);
         setSelectedChart(value);
     }, []);
 
@@ -44,8 +36,7 @@ const Charts = React.memo(({ sandboxProxy, selectedTheme = 'light' }) => {
 
         setIsAdding(true);
         try {
-            console.log("🟢 [Chart] Starting chart export and insertion...");
-
+            
             // Get the ECharts instance
             const echartsInstance = chartRef.current.getEchartsInstance();
             if (!echartsInstance) {
@@ -77,21 +68,14 @@ const Charts = React.memo(({ sandboxProxy, selectedTheme = 'light' }) => {
                 backgroundColor: exportBackgroundColor
             });
 
-            console.log("🟢 [Chart] Chart exported to data URL");
-
             // Convert data URL to blob
             const response = await fetch(dataUrl);
             const blob = await response.blob();
-            console.log("🟢 [Chart] Chart converted to blob:", blob);
-
+            
             // Use sandbox function to add chart to design
             const result = await sandboxProxy.addChartToDesign(blob);
 
-            if (result.success) {
-                console.log("✅ [Chart] Chart added to design successfully!");
-            } else {
-                alert(result.error || "Failed to add chart to design");
-            }
+            
         } catch (error) {
             console.error("❌ [Chart] Error adding chart to design:", error);
             alert(`Error: ${error.message}`);

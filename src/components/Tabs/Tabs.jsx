@@ -12,13 +12,7 @@ const Tabs = ({ sandboxProxy }) => {
     const tabsRef = useRef(null);
 
     // Log when Tabs component renders
-    useEffect(() => {
-        console.log('🔵 [Tabs] Component RENDERED/MOUNTED', {
-            selectedTab,
-            selectedTheme,
-            sandboxProxy: !!sandboxProxy
-        });
-    });
+    
 
     useEffect(() => {
         const tabsElement = tabsRef.current;
@@ -30,13 +24,10 @@ const Tabs = ({ sandboxProxy }) => {
             
             const handleChange = (event) => {
                 const newTab = event.target.selected;
-                console.log('🔵 [Tabs] Tab changed event:', newTab, 'current selectedTab:', selectedTab);
                 // Only update if it's actually different, not undefined, and is a valid tab value
                 if (newTab && newTab !== selectedTab && (newTab === 'charts' || newTab === 'themes')) {
-                    console.log('🔵 [Tabs] Updating selectedTab to:', newTab);
                     setSelectedTab(newTab);
                 } else if (!newTab || (newTab !== 'charts' && newTab !== 'themes')) {
-                    console.log('🔵 [Tabs] Ignoring invalid tab change:', newTab, '- keeping:', selectedTab);
                     // Restore the valid selectedTab value
                     if (tabsElement.selected !== selectedTab) {
                         tabsElement.selected = selectedTab;
@@ -54,13 +45,11 @@ const Tabs = ({ sandboxProxy }) => {
     useEffect(() => {
         const tabsElement = tabsRef.current;
         if (tabsElement && tabsElement.selected !== selectedTab) {
-            console.log('🔵 [Tabs] Syncing selectedTab to sp-tabs:', selectedTab);
             tabsElement.selected = selectedTab;
         }
     }, [selectedTab]);
 
     const handleThemeChange = useCallback((theme) => {
-        console.log('🔵 [Tabs] Theme change requested:', theme);
         setSelectedTheme(theme);
     }, []);
 
