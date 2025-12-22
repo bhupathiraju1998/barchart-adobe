@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import ChartRenderer from './ChartRenderer';
 import './CSVImportDialogContent.css';
 
-const CSVImportDialogContent = ({ onClose, onDataSubmit, chartType = 'bar', theme = 'default' }) => {
+const CSVImportDialogContent = ({ onClose, onDataSubmit, chartType = 'bar', theme = 'default', useFreshData = false }) => {
   // Debug: Log props
 
   // Get sample data structure
@@ -37,7 +37,18 @@ const CSVImportDialogContent = ({ onClose, onDataSubmit, chartType = 'bar', them
   const initialData = initializeSampleData();
   
   // Load saved data from sessionStorage if available
+  // If useFreshData is true (when importedData is null on page load), always use sample data
   const loadSavedData = () => {
+    // If useFreshData is true, skip sessionStorage and use sample data
+    if (useFreshData) {
+      return {
+        headers: initialData.headers,
+        rows: initialData.rows,
+        isSample: true
+      };
+    }
+    
+    // Otherwise, try to load from sessionStorage
     try {
       const savedDataStr = sessionStorage.getItem('csvImportDialog_savedData');
       if (savedDataStr) {

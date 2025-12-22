@@ -7,16 +7,18 @@ const CSVImportDialogApp = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [chartType, setChartType] = useState('bar');
   const [theme, setTheme] = useState('default');
+  const [useFreshData, setUseFreshData] = useState(false);
 
   useEffect(() => {
     const init = async () => {
       try {
         await addOnUISdk.ready;
         
-        // Read chart type and theme from URL parameters
+        // Read chart type, theme, and useFreshData from URL parameters
         const params = new URLSearchParams(window.location.search);
         const urlChartType = params.get('chartType');
         const urlTheme = params.get('theme');
+        const urlUseFreshData = params.get('useFreshData');
         
         
         if (urlChartType) {
@@ -24,6 +26,9 @@ const CSVImportDialogApp = () => {
         }
         if (urlTheme) {
           setTheme(urlTheme);
+        }
+        if (urlUseFreshData === 'true') {
+          setUseFreshData(true);
         }
       } catch (err) {
         console.error("Failed to initialize add-on SDK:", err);
@@ -62,6 +67,7 @@ const CSVImportDialogApp = () => {
       onDataSubmit={handleDataSubmit}
       chartType={chartType}
       theme={theme}
+      useFreshData={useFreshData}
     />
   );
 };
