@@ -721,6 +721,7 @@ const App = ({ addOnUISdk, sandboxProxy }) => {
                             emailModalEnabled={emailModalEnabled}
                             hasSubmittedEmail={hasSubmittedEmail}
                             onEmailSubmitted={handleEmailSubmitted}
+                            flagsData={flagsData}
                         />
                     </div>
                 </div>

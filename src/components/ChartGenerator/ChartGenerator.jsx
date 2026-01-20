@@ -21,7 +21,8 @@ const ChartGenerator = ({
     onOpenUpgradeDrawer,
     emailModalEnabled = false,
     hasSubmittedEmail = false,
-    onEmailSubmitted
+    onEmailSubmitted,
+    flagsData
 }) => {
     const [selectedChart, setSelectedChart] = useState('bar');
     const [selectedTheme, setSelectedTheme] = useState('default');
@@ -196,8 +197,35 @@ const ChartGenerator = ({
         return true; // Non-Pro users or no validation needed
     }, [isPro, addOnUISdk]);
 
+    // Check if selected chart or theme is pro-only
+    const isProOnlySelected = useMemo(() => {
+        // Check fullyPaidAddon flag
+        const isFullyPaidAddon = flagsData?.['other-info']?.['fullyPaidAddon'] === true;
+        
+        // If fullyPaidAddon is true: ALL charts require Pro (for non-Pro users)
+        if (isFullyPaidAddon) {
+            // For non-Pro users, treat all charts as Pro-only
+            // For Pro users, allow all charts
+            return !isPro; // Returns true if user is NOT Pro (meaning upgrade needed)
+        }
+        
+        // If fullyPaidAddon is false: Use existing PRO_ONLY logic
+        const isProChart = PRO_ONLY_CHARTS.includes(selectedChart);
+        const isProTheme = PRO_ONLY_THEMES.includes(selectedTheme);
+        return isProChart || isProTheme;
+    }, [selectedChart, selectedTheme, flagsData, isPro]);
+
     // Show login/signup popup when Add to Page is clicked
     const handleAddToPage = useCallback(async () => {
+        // Check if upgrade is needed
+        // Upgrade needed if:
+        // 1. fullyPaidAddon is true AND user is not Pro (all charts require Pro)
+        // 2. fullyPaidAddon is false AND Pro chart/theme selected AND user is not Pro
+        if (isProOnlySelected && !isPro && onOpenUpgradeDrawer) {
+            onOpenUpgradeDrawer();
+            return;
+        }
+
         if (!sandboxProxy) {
             alert("Please wait for the add-on to initialize.");
             return;
@@ -219,10 +247,13 @@ const ChartGenerator = ({
         }
 
         // Check all three conditions for email modal (same as bulk addons)
+        // Only show email modal if fullyPaidAddon is false
+        const isFullyPaidAddon = flagsData?.['other-info']?.['fullyPaidAddon'] === true;
         const shouldShowModal = 
-            emailModalEnabled === true &&  // Both flags are true
-            isPro === false &&              // Not a Pro user
-            hasSubmittedEmail === false;    // Has not submitted email yet
+            !isFullyPaidAddon &&              // Only show modal if NOT fully paid addon
+            emailModalEnabled === true &&     // Both flags are true
+            isPro === false &&                // Not a Pro user
+            hasSubmittedEmail === false;      // Has not submitted email yet
 
         if (shouldShowModal) {
             // Show the login/signup modal
@@ -231,7 +262,7 @@ const ChartGenerator = ({
             // Skip modal and directly add chart to page
             await addChartToPage();
         }
-    }, [sandboxProxy, emailModalEnabled, isPro, hasSubmittedEmail, addChartToPage, validateSubscriptionBeforeAdding]);
+    }, [sandboxProxy, emailModalEnabled, isPro, hasSubmittedEmail, addChartToPage, validateSubscriptionBeforeAdding, flagsData, isProOnlySelected, onOpenUpgradeDrawer]);
 
     // Actual function to add chart to page
     const addChartToPage = useCallback(async () => {
@@ -400,13 +431,6 @@ const ChartGenerator = ({
         setStylingOptions(newOptions);
     }, [stylingOptions]);
 
-    // Check if selected chart or theme is pro-only
-    const isProOnlySelected = useMemo(() => {
-        const isProChart = PRO_ONLY_CHARTS.includes(selectedChart);
-        const isProTheme = PRO_ONLY_THEMES.includes(selectedTheme);
-        return isProChart || isProTheme;
-    }, [selectedChart, selectedTheme]);
-
     return (
         <div className="chart-generator-container">
             <div className="pickers-row">
@@ -436,9 +460,6 @@ const ChartGenerator = ({
                 isAdding={isAdding}
                 onAddToPage={handleAddToPage}
                 onImportCSV={handleImportCSV}
-                isPro={isPro}
-                isProOnlySelected={isProOnlySelected}
-                onOpenUpgradeDrawer={onOpenUpgradeDrawer}
             />
             <ChartStylingOptions 
                 chartType={selectedChart}
